@@ -1,0 +1,8 @@
+<!-- Add this before </body> OR inside app.js (run once) -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js');
+  });
+}
+</script>
