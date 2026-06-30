@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CMR PRO</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#0056b3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="CMR PRO">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <style>
+        :root {
+            --primary: #0056b3;
+            --bg-app: #f2f4f8;
+            --cmr-ink: #000;
+            --input-bg: #fffde7;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-app);
+            padding-bottom: 70px;
+            overscroll-behavior-y: none;
+        }
+
+        /* SPLASH */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #ffffff; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease-out;
+        }
+        #splash-badge {
+            width: 84px; height: 84px; border-radius: 20px;
+            background: linear-gradient(135deg, #0056b3, #00a8e8);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 30px rgba(0,86,179,0.35);
+            animation: splashPop 0.6s ease-out;
+        }
+        @keyframes splashPop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        #splash-title { font-size: 30px; font-weight: 800; letter-spacing: 3px; margin-top: 18px; color: #1a2b40; }
+        #splash-pro {
+            font-size: 12px; font-weight: 700; letter-spacing: 2px; margin-left: 6px;
+            background: linear-gradient(135deg, #0056b3, #00a8e8);
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+            border: 1.5px solid #00a8e8; border-radius: 6px; padding: 2px 6px; vertical-align: middle;
+        }
+        #splash-route { position: relative; width: 180px; height: 20px; margin-top: 22px; overflow: hidden; }
+        #splash-route-line {
+            position: absolute; top: 50%; left: 0; width: 100%; height: 2px; transform: translateY(-50%);
+            background: repeating-linear-gradient(90deg, #cfd8e3 0 8px, transparent 8px 16px);
+        }
+        #splash-route-dot { position: absolute; top: 50%; left: 0; transform: translateY(-50%); font-size: 16px; animation: driveRoute 1.8s linear infinite; }
+        @keyframes driveRoute { 0% { left: 0%; } 100% { left: calc(100% - 18px); } }
+        #splash-tip { margin-top: 16px; font-size: 12px; color: #8a96a8; text-align: center; padding: 0 40px; min-height: 14px; }
+
+        /* TOAST */
+        #toast-container {
+            position: fixed; bottom: 75px; left: 50%; transform: translateX(-50%);
+            z-index: 9998; display: flex; flex-direction: column-reverse; align-items: center; gap: 8px;
+            pointer-events: none; width: 90%;
+        }
+        .toast {
+            background: #333; color: white; padding: 11px 20px; border-radius: 22px;
+            font-size: 14px; opacity: 0; transition: opacity 0.3s, transform 0.3s;
+            max-width: 320px; text-align: center; transform: translateY(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #28a745; }
+        .toast.error   { background: #dc3545; }
+        .toast.info    { background: #0056b3; }
+        .toast.warning { background: #f39c12; }
+
+        /* SIG OVERLAY */
+        #sig-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; z-index: 9990; flex-direction: column;
+        }
+        #sig-overlay.open { display: flex; }
+        #sig-overlay-header {
+            padding: 12px 15px; background: var(--primary); color: white;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-shrink: 0;
+        }
+        #sig-overlay-header span { font-weight: bold; font-size: 16px; }
+        #sig-overlay-header button {
+            border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px;
+            font-weight: bold; cursor: pointer; color: white;
+        }
+        #sig-overlay-wrap { flex: 1; position: relative; background: #f8f8f8; }
+        #overlay-sig-canvas { width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+        #sig-overlay-hint {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            color: #ccc; font-size: 15px; pointer-events: none; user-select: none; white-space: nowrap;
+        }
+
+        /* NAV */
+        .nav-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 60px;
+            background: #fff; border-top: 1px solid #ddd;
+            display: flex; justify-content: space-around; align-items: center;
+            z-index: 5000; box-shadow: 0 -2px 15px rgba(0,0,0,0.05);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; color: #aaa; font-size: 10px; cursor: pointer; }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 20px; margin-bottom: 3px; }
+
+        /* VIEWS */
+        .view { display: none; padding: 15px; animation: fadeIn 0.4s; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* GENERAL STYLES */
+        h2 { border-left: 5px solid var(--primary); padding-left: 10px; color: #333; }
+        h3 { color: #444; font-size: 16px; margin-bottom: 10px; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .app-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; margin-top: 10px; cursor: pointer; text-align: center; }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: #28a745; }
+        .btn-danger  { background: #dc3545; }
+        .btn-purple  { background: #7b2ff7; }
+        .btn-gray    { background: #6c757d; }
+        .input-label { font-size: 12px; color: #666; font-weight: 600; display: block; margin-bottom: 5px; }
+
+        .db-list { list-style: none; padding: 0; }
+        .db-list li { background: #fff; border-bottom: 1px solid #eee; padding: 15px 0; display: flex; justify-content: space-between; align-items: center; }
+
+        .history-item { background: white; padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 4px solid #aaa; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .history-item.has-goods { border-left-color: var(--primary); }
+        .history-date { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 1px; }
+        .history-route { font-weight: bold; font-size: 14px; margin: 5px 0; color: #333; }
+
+        /* CMR WRAPPER */
+        .cmr-wrapper { width: 100%; overflow-x: auto; padding-bottom: 20px; display: flex; justify-content: center; }
+
+        .page {
+            width: 210mm; height: 296mm;
+            background: white; position: relative;
+            box-shadow: 0 0 15px rgba(0,0,0,0.15);
+            overflow: hidden; flex-shrink: 0;
+            transform-origin: top left;
+        }
+
+        @media screen and (max-width: 800px) {
+            .page { transform: scale(0.48); margin-bottom: -140mm; margin-right: -100mm; }
+            .cmr-wrapper { justify-content: flex-start; }
+        }
+
+        /* CMR FIXED ELEMENTS */
+        .line-h { position: absolute; height: 0; border-top: 1px solid var(--cmr-ink); z-index: 20; pointer-events: none; }
+        .line-v { position: absolute; width: 0; border-left: 1px solid var(--cmr-ink); z-index: 20; pointer-events: none; }
+        .lbl { position: absolute; font-size: 5pt; color: var(--cmr-ink); line-height: 1; z-index: 10; pointer-events: none; font-family: Arial; white-space: normal; }
+        .lbl-title { font-size: 10pt; font-weight: bold; text-transform: uppercase; }
+        .lbl-bold { font-weight: 900; font-size: 6pt; }
+        .num { position: absolute; font-size: 7pt; color: var(--cmr-ink); z-index: 10; text-align: right; width: 20px; pointer-events: none; }
+
+        /* CMR INPUTS */
+        .cmr-input {
+            position: absolute; background: var(--input-bg); border: none;
+            font-family: 'Courier New', Courier, monospace; font-size: 10pt; font-weight: bold; color: black;
+            padding: 2px; resize: none; outline: none; z-index: 1; text-align: left;
+        }
+        .cmr-input.invalid { background: #ffe0e0 !important; box-shadow: 0 0 0 2px #dc3545; }
+
+        /* QUICK-PICK / GEO BUTTONS */
+        .quick-pick {
+            position: absolute; width: 24px; height: 24px; background: var(--primary); color: white;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 14px; z-index: 50; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid white;
+        }
+        .geo-btn {
+            position: absolute; width: 24px; height: 24px; background: #28a745; color: white;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 14px; z-index: 50; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid white;
+        }
+
+        /* SIG BOX */
+        .sig-box { position: absolute; z-index: 30; }
+        canvas { width: 100%; height: 100%; }
+        .sig-canvas-inner { width: 100%; height: 100%; cursor: crosshair; touch-action: none; display: block; }
+
+        .sig-ui-btn {
+            position: absolute; color: white; border: none;
+            font-size: 9px; z-index: 35; cursor: pointer; padding: 2px 5px; border-radius: 3px;
+        }
+
+        /* MODAL */
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9000; display: none; justify-content: center; align-items: center; }
+        #modal-box { background: white; width: 85%; max-width: 400px; padding: 20px; border-radius: 12px; max-height: 70vh; overflow-y: auto; }
+        .modal-item { padding: 15px; border-bottom: 1px solid #eee; font-size: 16px; cursor: pointer; }
+        .modal-item:active { background: #f0f0f0; }
+
+        /* CONTROLS */
+        .btn-row { display: flex; gap: 6px; margin-bottom: 8px; }
+        .btn-row .btn { margin: 0; font-size: 12px; padding: 11px 4px; flex: 1; }
+
+        /* VALIDATION BADGE */
+        #validation-banner {
+            display: none; background: #dc3545; color: white; padding: 8px 12px;
+            border-radius: 8px; font-size: 13px; margin-bottom: 8px; text-align: center;
+        }
+
+        /* PRINT STYLES */
+        @media print {
+            @page { size: A4; margin: 0; }
+            body { margin: 0; padding: 0; background: white; }
+            .nav-bar, #splash-screen, .controls, .view, .quick-pick, .geo-btn, h2, .card, #modal-overlay,
+            #toast-container, #sig-overlay { display: none !important; }
+            .sig-ui-btn, .sig-box button { display: none !important; }
+            #view-cmr { display: block !important; padding: 0; margin: 0; }
+            .cmr-wrapper { display: block; width: 210mm; height: 296mm; overflow: visible; margin: 0; padding: 0; }
+            .page {
+                width: 210mm !important; height: 296mm !important;
+                transform: none !important; margin: 0 !important;
+                box-shadow: none; border: none; position: absolute; top: 0; left: 0;
+            }
+            .cmr-input { background: transparent !important; border: none !important; }
+            input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash-screen">
+    <div id="splash-badge">
+        <svg viewBox="0 0 64 64" width="48" height="48" fill="none">
+            <path d="M14 6h28l8 8v40a2 2 0 0 1-2 2H14a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" fill="#ffffff" opacity="0.95"/>
+            <path d="M42 6v8h8" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.6"/>
+            <path d="M18 24h28M18 32h20M18 40h24" stroke="#0056b3" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+            <circle cx="32" cy="50" r="4" fill="#0056b3"/>
+        </svg>
+    </div>
+    <div id="splash-title">CMR<span id="splash-pro">PRO</span></div>
+    <div id="splash-route">
+        <div id="splash-route-line"></div>
+        <div id="splash-route-dot">🚚</div>
+    </div>
+    <div id="splash-tip"></div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- FULLSCREEN SIGNATURE OVERLAY -->
+<div id="sig-overlay">
+    <div id="sig-overlay-header">
+        <span id="sig-overlay-title">Podpis</span>
+        <div style="display:flex; gap:8px;">
+            <button style="background:#dc3545;" onclick="clearOverlaySig()">Wyczyść</button>
+            <button style="background:#28a745;" onclick="confirmOverlaySig()">✓ Zatwierdź</button>
+            <button style="background:#6c757d;" onclick="closeOverlaySig()">✕</button>
+        </div>
+    </div>
+    <div id="sig-overlay-wrap">
+        <canvas id="overlay-sig-canvas"></canvas>
+        <div id="sig-overlay-hint">✍️ Podpisz tutaj</div>
+    </div>
+</div>
+
+<!-- PICK MODAL -->
+<div id="modal-overlay">
+    <div id="modal-box">
+        <h3 style="margin-top:0;">Wybierz:</h3>
+        <div id="modal-list"></div>
+        <button class="btn btn-danger" style="margin-top:12px;" onclick="closeModal()">Anuluj</button>
+    </div>
+</div>
+
+<!-- VIEW: CMR -->
+<div id="view-cmr" class="view active">
+    <div class="controls">
+        <div class="btn-row">
+            <button class="btn btn-success" onclick="saveCurrentToHistory()">💾 ZAPISZ</button>
+            <button class="btn btn-purple" onclick="generatePDF()">📄 PDF</button>
+            <button class="btn btn-primary" onclick="printCMR()">🖨️ DRUK</button>
+            <button class="btn btn-gray" onclick="newCMR()">🆕 NOWY</button>
+        </div>
+        <div id="validation-banner"></div>
+        <div style="text-align:center; font-size:11px; color:#999;">PDF → pobierz i wydrukuj na drukarce mobilnej</div>
+        <div id="draft-status" style="text-align:center; font-size:10px; color:#bbb; margin-top:4px;"></div>
+    </div>
+
+    <div class="cmr-wrapper">
+        <div class="page" id="cmr-page">
+            <div class="lbl lbl-title" style="top:9mm; left:8mm;">LETTRE DE VOITURE INTERNATIONALE</div>
+            <div style="position:absolute; top:7mm; left:100mm; width:35px; height:20px; border:1px solid #000; border-radius:50%; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:9pt; z-index:20;">CMR</div>
+            <div class="lbl lbl-title" style="top:9mm; right:8mm;">INTERNATIONAL CONSIGNMENT NOTE</div>
+            <div class="line-h" style="top:15mm; left:8mm; width:194mm;"></div>
+            <div class="line-v" style="top:15mm; left:8mm; height:275mm;"></div>
+            <div class="line-v" style="top:15mm; left:202mm; height:275mm;"></div>
+            <div class="line-h" style="top:290mm; left:8mm; width:194mm;"></div>
+            <div class="line-v" style="top:15mm; left:105mm; height:103mm;"></div>
+            <div class="line-h" style="top:40mm; left:8mm; width:97mm;"></div>
+            <div class="line-h" style="top:65mm; left:8mm; width:97mm;"></div>
+            <div class="line-h" style="top:85mm; left:8mm; width:97mm;"></div>
+            <div class="line-h" style="top:118mm; left:8mm; width:194mm;"></div>
+            <div class="line-h" style="top:28mm; left:105mm; width:97mm;"></div>
+            <div class="line-h" style="top:40mm; left:105mm; width:97mm;"></div>
+            <div class="line-h" style="top:75mm; left:105mm; width:97mm;"></div>
+
+            <!-- FIELD 1: SENDER -->
+            <div class="num" style="top:16mm; left:99mm;">1</div>
+            <div class="lbl" style="top:16mm; left:9mm; width:85mm;">Sender (Name, Address, Country) / Expéditeur</div>
+            <textarea id="inp_sender" class="cmr-input" style="top:22mm; left:9mm; width:95mm; height:17mm;"></textarea>
+            <div class="quick-pick" style="top:17mm; left:90mm;" onclick="openPicker('sender')" title="Wybierz z bazy">📂</div>
+
+            <!-- FIELD 4: CONSIGNEE -->
+            <div class="num" style="top:41mm; left:99mm;">4</div>
+            <div class="lbl" style="top:41mm; left:9mm; width:85mm;">Consignee (Name, Address, Country) / Destinataire</div>
+            <textarea id="inp_consignee" class="cmr-input" style="top:47mm; left:9mm; width:95mm; height:17mm;"></textarea>
+            <div class="quick-pick" style="top:42mm; left:90mm;" onclick="openPicker('consignee')">📂</div>
+
+            <!-- FIELD 6: PLACE OF TAKING OVER (PICKUP) -->
+            <div class="num" style="top:66mm; left:99mm;">6</div>
+            <div class="lbl" style="top:66mm; left:9mm; width:85mm;">Place &amp; Date of taking over the goods (place, country, date)<br>Lieu et date de la prise en charge des marchandises</div>
+            <textarea id="inp_pickup" class="cmr-input" style="top:72mm; left:9mm; width:95mm; height:12mm;"></textarea>
+            <div class="quick-pick" style="top:67mm; left:90mm;" onclick="openPicker('pickup')">📂</div>
+            <div class="geo-btn" style="top:67mm; left:65mm;" onclick="getGeo('inp_pickup')" title="Pobierz lokalizację GPS">📍</div>
+
+            <!-- FIELD 8: DELIVERY PLACE -->
+            <div class="num" style="top:86mm; left:99mm;">8</div>
+            <div class="lbl" style="top:86mm; left:9mm; width:85mm;">Place designated for delivery of goods (place, country).<br>Lieu prévu pour la livraison des marchandises</div>
+            <textarea id="inp_destination" class="cmr-input" style="top:92mm; left:9mm; width:95mm; height:25mm;"></textarea>
+            <div class="quick-pick" style="top:87mm; left:90mm;" onclick="openPicker('destination')">📂</div>
+            <div class="geo-btn" style="top:87mm; left:65mm;" onclick="getGeo('inp_destination')">📍</div>
+
+            <!-- FIELD 5: CARRIER -->
+            <div class="num" style="top:41mm; left:196mm;">5</div>
+            <div class="lbl" style="top:41mm; left:106mm; width:85mm;">Carrier (Name, Address, Country) / Transporteur</div>
+            <textarea id="inp_carrier" class="cmr-input" style="top:46mm; left:106mm; width:95mm; height:28mm; text-align:center; font-weight:bold; font-size:11pt;"></textarea>
+
+            <!-- TRACTOR / TRAILER -->
+            <div class="lbl lbl-bold" style="top:97mm; left:106mm;">TRACTOR / TRACTEUR NR:</div>
+            <input id="inp_tractor" class="cmr-input" style="top:96mm; left:140mm; width:60mm; height:5mm;">
+            <div class="quick-pick" style="top:95mm; left:196mm;" onclick="openPicker('tractor')">🚛</div>
+
+            <div class="lbl lbl-bold" style="top:103mm; left:106mm;">TRAILER / REMORQUE NR:</div>
+            <input id="inp_trailer" class="cmr-input" style="top:102mm; left:140mm; width:60mm; height:5mm;">
+            <div class="quick-pick" style="top:101mm; left:196mm;" onclick="openPicker('trailer')">🚛</div>
+
+            <!-- FIELD 2 -->
+            <div class="num" style="top:16mm; left:196mm;">2</div>
+            <div class="lbl" style="top:16mm; left:106mm; width:90mm;">Customs Reference/Status Référence/designation pour mise en douane</div>
+            <input id="inp_f2" class="cmr-input" style="top:20mm; left:106mm; width:95mm; height:7mm;">
+
+            <!-- FIELD 3 -->
+            <div class="num" style="top:29mm; left:196mm;">3</div>
+            <div class="lbl" style="top:29mm; left:106mm; width:90mm;">Senders/Agent's Reference. Référence de l'expéditeur/de l'agent.</div>
+            <input id="inp_f3" class="cmr-input" style="top:33mm; left:106mm; width:95mm; height:6mm;">
+
+            <!-- FIELD 7 -->
+            <div class="num" style="top:76mm; left:196mm;">7</div>
+            <div class="lbl" style="top:76mm; left:106mm; width:95mm;">Successive carriers / Transporteurs successifs</div>
+            <textarea id="inp_f7" class="cmr-input" style="top:80mm; left:106mm; width:95mm; height:15mm;"></textarea>
+
+            <div class="lbl" style="top:109mm; left:106mm; width:95mm; font-size:5pt; text-align:justify; line-height:1;">This carriage is subject, notwithstanding any clause to the contrary, to the convention on the Contract for the International Carriage of Goods by Road (CMR).<br>Ce transport est soumis, nonobstant toute clause au contraire, à la convention relative au contrat de transport international de marchandises par route (CMR).</div>
+
+            <!-- GOODS TABLE -->
+            <div class="num" style="top:119mm; left:148mm;">9</div>
+            <div class="line-v" style="top:118mm; left:155mm; height:97mm;"></div>
+            <div class="line-v" style="top:118mm; left:178mm; height:97mm;"></div>
+            <div class="lbl" style="top:119mm; left:9mm; width:140mm;">Marks &amp; No, Kind of Packages, Description of Goods<br>Marques et numéros, Nombre et nature des colis, Désignation de la marchandise</div>
+
+            <div class="num" style="top:119mm; left:172mm;">10</div>
+            <div class="lbl" style="top:119mm; left:156mm;">Gross weight (kg)<br>Poids brut (kg)</div>
+            <div class="num" style="top:119mm; left:196mm;">11</div>
+            <div class="lbl" style="top:119mm; left:179mm;">Volume (m³)<br>Cubage (m³)</div>
+
+            <textarea id="inp_goods" class="cmr-input" style="top:125mm; left:9mm; width:145mm; height:68mm;"></textarea>
+            <textarea id="inp_weight" class="cmr-input" style="top:125mm; left:156mm; width:21mm; height:68mm; text-align:center;"></textarea>
+            <textarea id="inp_vol" class="cmr-input" style="top:125mm; left:179mm; width:22mm; height:68mm; text-align:center;"></textarea>
+
+            <!-- PALLETS -->
+            <div class="line-h" style="top:195mm; left:8mm; width:147mm;"></div>
+            <div class="line-h" style="top:207mm; left:8mm; width:147mm;"></div>
+            <div class="line-v" style="top:195mm; left:80mm; height:20mm;"></div>
+            <div class="line-v" style="top:195mm; left:33mm; height:20mm;"></div>
+            <div class="line-v" style="top:195mm; left:103mm; height:20mm;"></div>
+            <datalist id="pallet-opts"><option value="0"><option value="33"><option value="66"></datalist>
+
+            <div class="lbl lbl-bold" style="top:192mm; left:35mm; width:30mm; text-align:center;">LOADING POINT</div>
+            <div class="lbl lbl-bold" style="top:198mm; left:9mm; width:24mm;">PALLETS IN:</div>
+            <input id="inp_pal_lin" class="cmr-input" list="pallet-opts" style="top:196mm; left:34mm; width:45mm; height:10mm; text-align:center;">
+            <div class="lbl lbl-bold" style="top:210mm; left:9mm; width:24mm;">PALLETS OUT:</div>
+            <input id="inp_pal_lout" class="cmr-input" list="pallet-opts" style="top:208mm; left:34mm; width:45mm; height:7mm; text-align:center;">
+
+            <div class="lbl lbl-bold" style="top:192mm; left:105mm; width:30mm; text-align:center;">DELIVERY POINT</div>
+            <div class="lbl lbl-bold" style="top:198mm; left:82mm; width:20mm;">PALLETS IN:</div>
+            <input id="inp_pal_din" class="cmr-input" list="pallet-opts" style="top:196mm; left:104mm; width:42mm; height:10mm; text-align:center;">
+            <div class="lbl lbl-bold" style="top:210mm; left:82mm; width:20mm;">PALLETS OUT:</div>
+            <input id="inp_pal_dout" class="cmr-input" list="pallet-opts" style="top:208mm; left:104mm; width:42mm; height:7mm; text-align:center;">
+
+            <!-- FIELDS 12 & 13 -->
+            <div class="line-h" style="top:215mm; left:8mm; width:194mm;"></div>
+            <div class="line-v" style="top:215mm; left:105mm; height:45mm;"></div>
+            <div class="num" style="top:216mm; left:99mm;">12</div>
+            <div class="lbl" style="top:216mm; left:9mm;">Carriage Charges. Prix de transport.</div>
+            <input id="inp_f12" class="cmr-input" style="top:219mm; left:9mm; width:95mm; height:8mm;">
+
+            <div class="num" style="top:216mm; left:196mm;">13</div>
+            <div class="lbl" style="top:216mm; left:106mm;">Senders Instructions for Customs, etc... Instructions de l'expéditeur (optional)</div>
+            <input id="inp_f13" class="cmr-input" style="top:219mm; left:106mm; width:95mm; height:8mm;">
+
+            <!-- FIELDS 14 & 15 -->
+            <div class="line-h" style="top:230mm; left:8mm; width:194mm;"></div>
+            <div class="num" style="top:231mm; left:99mm;">14</div>
+            <div class="lbl" style="top:231mm; left:9mm;">Reservations. Réserves.</div>
+            <textarea id="inp_f14" class="cmr-input" style="top:236mm; left:9mm; width:95mm; height:10mm; font-size:7pt; font-weight:900; background:transparent; text-align:center;">THE CARRIER ACCEPTS NO RESPONSIBILITY FOR THE QUALITY OR QUANTITY OF THE GOODS LOADED</textarea>
+
+            <div class="num" style="top:231mm; left:196mm;">15</div>
+            <div class="lbl" style="top:231mm; left:106mm;">Documents Attached. Documents Annexés (optional)</div>
+            <input id="inp_f15" class="cmr-input" style="top:235mm; left:106mm; width:95mm; height:8mm;">
+
+            <!-- FIELD 16: TEMP -->
+            <div class="num" style="top:250mm; left:196mm;">16</div>
+            <div class="lbl" style="top:250mm; left:106mm;">Special Agreements. Conventions particulières (optional).</div>
+            <div class="lbl lbl-bold" style="top:254mm; left:106mm;">TEMPERATURE SETTINGS AT:</div>
+            <input id="inp_temp1" class="cmr-input" style="top:253mm; left:145mm; width:20mm; height:5mm; background:transparent; text-align:center;">
+            <div class="lbl lbl-bold" style="top:254mm; left:167mm;">DEGREES CENTIGRADE</div>
+            <input id="inp_temp2" class="cmr-input" style="top:253mm; left:185mm; width:20mm; height:5mm; background:transparent; text-align:center;">
+
+            <!-- SIGNATURE SECTION -->
+            <div class="line-h" style="top:260mm; left:8mm; width:194mm;"></div>
+            <div class="line-v" style="top:260mm; left:72mm; height:30mm;"></div>
+            <div class="line-v" style="top:260mm; left:136mm; height:30mm;"></div>
+
+            <!-- SIG 1: Goods Received -->
+            <div class="lbl" style="top:261mm; left:9mm;">Goods Received / Marchandises reçues</div>
+            <div class="num" style="top:261mm; left:66mm;">17</div>
+            <div class="sig-box" style="top:265mm; left:8mm; width:64mm; height:25mm;">
+                <canvas id="sig1" class="sig-canvas-inner"></canvas>
+                <button class="sig-ui-btn" style="top:0; right:24px; background:#dc3545;" onclick="clearSig('sig1')">X</button>
+                <button class="sig-ui-btn" style="top:0; right:0; background:#0056b3;" onclick="openOverlaySig('sig1','Podpis odbiorcy')">✍️</button>
+            </div>
+
+            <!-- SIG 2: Carrier Signature -->
+            <div class="num" style="top:261mm; left:130mm;">18</div>
+            <div class="lbl" style="top:261mm; left:73mm;">Signature of Carrier / Signature du transporteur</div>
+            <div class="lbl" style="top:265mm; left:73mm; font-weight:900; font-size:8pt;">SEAL NR:</div>
+            <input id="inp_seal" class="cmr-input" style="top:264mm; left:92mm; width:40mm; height:5mm; background:transparent; font-weight:900;">
+
+            <div class="sig-box" style="top:269mm; left:72mm; width:64mm; height:21mm;">
+                <canvas id="sig2" class="sig-canvas-inner"></canvas>
+                <button class="sig-ui-btn" style="top:0; right:24px; background:#dc3545;" onclick="clearSig('sig2')">X</button>
+                <button class="sig-ui-btn" style="top:0; right:0; background:#0056b3;" onclick="openOverlaySig('sig2','Podpis przewoźnika')">✍️</button>
+                <button class="sig-ui-btn" style="top:-18px; right:48px; background:#1565c0; white-space:nowrap;" onclick="pasteMySig()">Mój Podpis</button>
+            </div>
+
+            <!-- FIELD 19 -->
+            <div class="num" style="top:261mm; left:196mm;">19</div>
+            <div class="lbl" style="top:261mm; left:137mm;">Company completing this note. Sociêté émettrice</div>
+            <textarea id="inp_f19" class="cmr-input" style="top:263mm; left:137mm; width:64mm; height:15mm; text-align:center; font-size:8pt;"></textarea>
+
+            <!-- FIELD 20 -->
+            <div class="num" style="top:279mm; left:196mm;">20</div>
+            <div style="position:absolute; top:278mm; left:137mm; width:64mm; border-top:1px solid var(--cmr-ink);"></div>
+            <div class="lbl" style="top:279mm; left:137mm;">Place and date: signature. Lieu et date: signature</div>
+            <input id="inp_place20" class="cmr-input" placeholder="Place" style="top:283mm; left:137mm; width:30mm; height:8mm; background:transparent;">
+            <input id="inp_date20" class="cmr-input" type="date" style="top:283mm; left:167mm; width:34mm; height:8mm; background:transparent;">
+            <div class="geo-btn" style="top:278mm; left:132mm;" onclick="getGeo('inp_place20')">📍</div>
+        </div>
+    </div>
+</div>
+
+<!-- VIEW: HISTORY -->
+<div id="view-history" class="view">
+    <h2>🕒 Archiwum Tras</h2>
+    <div class="controls" style="margin-bottom:15px;">
+        <p style="font-size:12px; color:#666; margin:0 0 10px;">Kliknij "Załaduj", aby przywrócić trasę do formularza CMR.</p>
+        <button class="btn btn-danger" style="margin-top:0;" onclick="clearHistory()">🗑️ Wyczyść całą historię</button>
+    </div>
+    <div id="history-list"></div>
+</div>
+
+<!-- VIEW: DATABASE -->
+<div id="view-db" class="view">
+    <h2>📂 Baza Danych</h2>
+    <div class="card">
+        <h3 style="margin-top:0;">Dodaj adres</h3>
+        <span class="input-label">Nazwa:</span>
+        <input id="db_name" class="app-input" placeholder="np. ABC Sp. z o.o.">
+        <span class="input-label">Dane (adres):</span>
+        <textarea id="db_value" class="app-input" rows="3" placeholder="Ulica, miasto, kraj"></textarea>
+        <select id="db_type" class="app-input">
+            <option value="sender">Nadawca (pole 1)</option>
+            <option value="consignee">Odbiorca (pole 4)</option>
+            <option value="pickup">Miejsce załadunku (pole 6)</option>
+            <option value="destination">Miejsce dostawy (pole 8)</option>
+        </select>
+        <button class="btn btn-primary" onclick="saveToDb('addr')">Zapisz adres</button>
+    </div>
+    <div class="card">
+        <h3 style="margin-top:0;">Dodaj pojazd</h3>
+        <span class="input-label">Nr rejestracyjny:</span>
+        <input id="db_plate" class="app-input" placeholder="np. RE 12345">
+        <select id="db_vtype" class="app-input">
+            <option value="tractor">Ciągnik</option>
+            <option value="trailer">Naczepa</option>
+        </select>
+        <button class="btn btn-primary" onclick="saveToDb('veh')">Zapisz pojazd</button>
+    </div>
+    <div class="card" style="padding:15px;">
+        <h3 style="margin-top:0;">Zapisane wpisy</h3>
+        <ul id="db-list" class="db-list"></ul>
+    </div>
+</div>
+
+<!-- VIEW: PROFILE -->
+<div id="view-profile" class="view">
+    <h2>⚙️ Ustawienia i Profil</h2>
+
+    <div class="card">
+        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">🏢 Przewoźnik (pole 5)</h3>
+        <span class="input-label">Nazwa firmy:</span>
+        <input id="profile_c_name" class="app-input" placeholder="np. NOLAN TRANSPORT">
+        <span class="input-label">Pełny adres i kontakt:</span>
+        <textarea id="profile_carrier" class="app-input" style="height:80px;" placeholder="Adres, telefon, email..."></textarea>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">🚛 Domyślne pojazdy</h3>
+        <div style="display:flex; gap:10px;">
+            <div style="width:50%;">
+                <span class="input-label">Ciągnik:</span>
+                <input id="profile_tr" class="app-input" placeholder="RE 12345">
+            </div>
+            <div style="width:50%;">
+                <span class="input-label">Naczepa:</span>
+                <input id="profile_trl" class="app-input" placeholder="TR 555">
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">✍️ Twój stały podpis</h3>
+        <p style="font-size:12px; color:#666; margin:0 0 8px;">Użyj przycisku "Mój Podpis" w polu 18 CMR.</p>
+        <div style="border:1px solid #ccc; height:100px; background:white; border-radius:4px; margin-bottom:10px; position:relative;">
+            <canvas id="profile-sig-canvas" style="width:100%; height:100%; display:block; cursor:crosshair; touch-action:none;"></canvas>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-primary" onclick="openOverlaySig('profile-sig-canvas','Twój stały podpis')">✍️ Podpisz</button>
+            <button class="btn btn-success" onclick="saveProfileSig()">💾 Zapisz</button>
+            <button class="btn btn-danger" onclick="clearP()">Wyczyść</button>
+        </div>
+    </div>
+
+    <div class="card" style="background:#e3f2fd; border:1px solid #bbdefb;">
+        <h3 style="margin-top:0; border-bottom:1px solid #bbdefb; padding-bottom:10px; color:#0d47a1;">💾 Kopia Zapasowa</h3>
+        <button class="btn" style="background:#1976d2;" onclick="exportData()">⬇️ Pobierz Backup</button>
+        <div style="margin-top:15px; border-top:1px solid #bbdefb; padding-top:10px;">
+            <span class="input-label">Wgraj Backup:</span>
+            <input type="file" id="import-file" accept=".json" style="margin-top:5px;" onchange="importData(this)">
+        </div>
+    </div>
+
+    <div style="height:20px;"></div>
+    <button class="btn btn-primary" onclick="saveProfile()">💾 ZAPISZ USTAWIENIA</button>
+    <br><br>
+</div>
+
+<!-- NAVIGATION -->
+<div class="nav-bar">
+    <div class="nav-item active" onclick="nav('cmr', this)"><span class="nav-icon">📝</span>CMR</div>
+    <div class="nav-item" onclick="nav('history', this)"><span class="nav-icon">🕒</span>Historia</div>
+    <div class="nav-item" onclick="nav('db', this)"><span class="nav-icon">📂</span>Baza</div>
+    <div class="nav-item" onclick="nav('profile', this)"><span class="nav-icon">👤</span>Profil</div>
+</div>
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const SPLASH_TIPS = [
+    'Sprawdź stan naczepy przed wyjazdem',
+    'Pamiętaj o dokumentach przewozowych',
+    'Bezpiecznej trasy! 🚚',
+    'Skontroluj zabezpieczenie ładunku',
+    'Miej zawsze kopię CMR dla siebie',
+    'Sprawdź czas pracy przed startem'
+];
+
+const DEFAULT_F14 = 'THE CARRIER ACCEPTS NO RESPONSIBILITY FOR THE QUALITY OR QUANTITY OF THE GOODS LOADED';
+
+// All field IDs in the CMR form — used for save/restore/reset
+const CMR_FIELD_IDS = [
+    'inp_sender','inp_consignee','inp_pickup','inp_destination',
+    'inp_carrier','inp_tractor','inp_trailer',
+    'inp_f2','inp_f3','inp_f7',
+    'inp_goods','inp_weight','inp_vol',
+    'inp_pal_lin','inp_pal_lout','inp_pal_din','inp_pal_dout',
+    'inp_f12','inp_f13','inp_f14','inp_f15',
+    'inp_temp1','inp_temp2',
+    'inp_seal','inp_f19','inp_place20','inp_date20'
+];
+
+// Fields kept when creating a new CMR (populated from profile)
+const KEEP_ON_NEW = ['inp_carrier','inp_tractor','inp_trailer'];
+
+// Required fields for validation
+const REQUIRED_FIELDS = ['inp_sender','inp_consignee'];
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+    const tipEl = document.getElementById('splash-tip');
+    if(tipEl) tipEl.textContent = SPLASH_TIPS[Math.floor(Math.random() * SPLASH_TIPS.length)];
+    setTimeout(() => {
+        const s = document.getElementById('splash-screen');
+        s.style.opacity = 0;
+        setTimeout(() => s.style.display = 'none', 500);
+    }, 2000);
+
+    loadDb();
+    setupSignaturePad('sig1');
+    setupSignaturePad('sig2');
+    setupSignaturePad('profile-sig-canvas');
+    setupOverlaySigPad();
+
+    const savedProf = localStorage.getItem('cmr_prof');
+    if(savedProf) loadProfile();
+
+    loadDraft();
+    loadHistoryList();
+
+    // Auto-save on any CMR input change
+    document.querySelectorAll('#view-cmr .cmr-input[id], #view-cmr input[id]').forEach(el => {
+        el.addEventListener('input', scheduleDraftSave);
+        el.addEventListener('change', scheduleDraftSave);
+    });
+
+    window.addEventListener('resize', () => {
+        Object.values(sigPads).forEach(p => resizeSigCanvas(p));
+    });
+
+    // PWA service worker
+    if('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+});
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function nav(v, el) {
+    document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+    document.getElementById('view-' + v).classList.add('active');
+    if(el) el.classList.add('active');
+    if(v === 'history') loadHistoryList();
+    if(v === 'profile') setTimeout(() => resizeSigCanvas(sigPads['profile-sig-canvas']), 50);
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg, type = 'info', duration = 3000) {
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.textContent = msg;
+    container.appendChild(el);
+    requestAnimationFrame(() => { requestAnimationFrame(() => el.classList.add('show')); });
+    setTimeout(() => {
+        el.classList.remove('show');
+        setTimeout(() => el.remove(), 350);
+    }, duration);
+}
+
+// ============================================================
+// VALIDATION
+// ============================================================
+function validateForm() {
+    let valid = true;
+    const banner = document.getElementById('validation-banner');
+    const missing = [];
+    REQUIRED_FIELDS.forEach(id => {
+        const el = document.getElementById(id);
+        if(!el || !el.value.trim()) {
+            el && el.classList.add('invalid');
+            missing.push(id === 'inp_sender' ? 'Nadawca' : 'Odbiorca');
+            valid = false;
+        } else {
+            el && el.classList.remove('invalid');
+        }
+    });
+    if(!valid) {
+        banner.style.display = 'block';
+        banner.textContent = '⚠️ Uzupełnij wymagane pola: ' + missing.join(', ');
+    } else {
+        banner.style.display = 'none';
+    }
+    return valid;
+}
+
+function clearValidation() {
+    REQUIRED_FIELDS.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.classList.remove('invalid');
+    });
+    document.getElementById('validation-banner').style.display = 'none';
+}
+
+// ============================================================
+// PRINT
+// ============================================================
+function printCMR() {
+    if(!validateForm()) {
+        toast('Uzupełnij wymagane pola przed drukowaniem', 'error');
+        return;
+    }
+    window.print();
+}
+
+// ============================================================
+// PDF GENERATION
+// ============================================================
+async function generatePDF() {
+    if(!validateForm()) {
+        toast('Uzupełnij wymagane pola przed generowaniem PDF', 'error');
+        return;
+    }
+    if(typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+        toast('Ładowanie bibliotek PDF…', 'info');
+        await new Promise(r => setTimeout(r, 1500));
+        if(typeof html2canvas === 'undefined') {
+            toast('Brak połączenia z internetem — użyj przycisku DRUK', 'error', 5000);
+            return;
+        }
+    }
+
+    const page = document.getElementById('cmr-page');
+    const toHide = document.querySelectorAll('.quick-pick, .geo-btn, .sig-ui-btn');
+
+    // Save transform state
+    const hadTransform = page.style.transform;
+    const hadMarginB = page.style.marginBottom;
+    const hadMarginR = page.style.marginRight;
+
+    toast('Generowanie PDF…', 'info', 8000);
+
+    try {
+        // Temporarily disable mobile scale
+        page.style.transform = 'none';
+        page.style.marginBottom = '0';
+        page.style.marginRight = '0';
+        toHide.forEach(el => el.style.visibility = 'hidden');
+
+        await new Promise(r => setTimeout(r, 120));
+
+        const canvasEl = await html2canvas(page, {
+            scale: 2.5,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff',
+            allowTaint: false
+        });
+
+        const imgData = canvasEl.toDataURL('image/jpeg', 0.93);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+
+        const truck = (document.getElementById('inp_tractor').value || '').replace(/[^a-zA-Z0-9]/g, '') || 'CMR';
+        const dateStr = new Date().toISOString().slice(0, 10);
+        const fileName = `CMR_${truck}_${dateStr}.pdf`;
+
+        // Try Web Share API first (mobile), fall back to download
+        const blob = pdf.output('blob');
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+        if(navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: 'CMR ' + truck });
+            toast('✅ PDF udostępniony!', 'success');
+        } else {
+            pdf.save(fileName);
+            toast('✅ PDF zapisany: ' + fileName, 'success');
+        }
+    } catch(err) {
+        console.error('PDF error:', err);
+        toast('❌ Błąd PDF — użyj przycisku DRUK', 'error', 5000);
+    } finally {
+        page.style.transform = hadTransform;
+        page.style.marginBottom = hadMarginB;
+        page.style.marginRight = hadMarginR;
+        toHide.forEach(el => el.style.visibility = '');
+    }
+}
+
+// ============================================================
+// GEOLOCATION
+// ============================================================
+function getGeo(targetId) {
+    if(!navigator.geolocation) { toast('Brak GPS w przeglądarce', 'error'); return; }
+    const btn = document.querySelector(`.geo-btn[onclick="getGeo('${targetId}')"]`);
+    if(btn) btn.innerHTML = '⏳';
+
+    const GEO_TIMEOUT = 12000;
+    let timedOut = false;
+    const timer = setTimeout(() => {
+        timedOut = true;
+        if(btn) btn.innerHTML = '📍';
+        toast('GPS nie odpowiada — spróbuj ponownie', 'warning');
+    }, GEO_TIMEOUT + 500);
+
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            if(timedOut) return;
+            clearTimeout(timer);
+            const { latitude, longitude } = pos.coords;
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1&zoom=14&accept-language=en`)
+                .then(r => r.json())
+                .then(data => {
+                    const addr = data.address || {};
+                    const country = addr.country || '';
+                    const today = new Date().toLocaleDateString('pl-PL');
+                    const candidates = [addr.village, addr.hamlet, addr.suburb, addr.town, addr.city, addr.municipality, addr.county, addr.state].filter(Boolean);
+                    const unique = [...new Set(candidates)];
+                    if(btn) btn.innerHTML = '📍';
+                    if(unique.length === 0) { toast('Nie ustalono nazwy miejscowości', 'warning'); return; }
+                    if(unique.length === 1) {
+                        document.getElementById(targetId).value = `${unique[0]}, ${country}. ${today}`;
+                        scheduleDraftSave();
+                        return;
+                    }
+                    // Multiple options — show picker
+                    const list = document.getElementById('modal-list');
+                    list.innerHTML = '';
+                    unique.forEach(name => {
+                        const d = document.createElement('div');
+                        d.className = 'modal-item';
+                        d.innerHTML = `<b>${name}</b><br><small>${country}</small>`;
+                        d.onclick = () => {
+                            document.getElementById(targetId).value = `${name}, ${country}. ${today}`;
+                            scheduleDraftSave();
+                            closeModal();
+                        };
+                        list.appendChild(d);
+                    });
+                    document.getElementById('modal-overlay').style.display = 'flex';
+                })
+                .catch(() => { if(btn) btn.innerHTML = '📍'; toast('Błąd pobierania adresu', 'error'); });
+        },
+        () => {
+            clearTimeout(timer);
+            if(btn) btn.innerHTML = '📍';
+            if(!timedOut) toast('Brak dostępu do lokalizacji', 'error');
+        },
+        { timeout: GEO_TIMEOUT, enableHighAccuracy: false }
+    );
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function saveCurrentToHistory() {
+    const sender = document.getElementById('inp_sender').value;
+    const consignee = document.getElementById('inp_consignee').value;
+    if(!sender && !consignee) {
+        toast('Wypełnij chociaż Nadawcę lub Odbiorcę!', 'error');
+        return;
+    }
+
+    const data = { id: Date.now(), date: new Date().toLocaleString() };
+    CMR_FIELD_IDS.forEach(id => { data[id] = document.getElementById(id)?.value || ''; });
+
+    // Save sig thumbnails
+    ['sig1','sig2'].forEach(id => {
+        const pad = sigPads[id];
+        if(pad && pad.canvas.width > 0) data['_' + id] = pad.canvas.toDataURL('image/png');
+    });
+
+    let hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    hist.unshift(data);
+    localStorage.setItem('cmr_history', JSON.stringify(hist));
+    toast('✅ Trasa zapisana w archiwum!', 'success');
+}
+
+function loadHistoryList() {
+    const list = document.getElementById('history-list');
+    const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    list.innerHTML = '';
+
+    if(hist.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:30px; color:#999; font-size:14px;">Brak zapisanych tras.</div>';
+        return;
+    }
+
+    hist.forEach(item => {
+        const div = document.createElement('div');
+        const pickup = (item.inp_pickup || item.delivery || '').split(',')[0];
+        const dest   = (item.inp_destination || item.loading || '').split(',')[0];
+        let route = 'Trasa nieznana';
+        if(pickup || dest) route = `${pickup || '?'} ➝ ${dest || '?'}`;
+        const hasGoods = !!(item.inp_goods || item.goods);
+        div.className = 'history-item' + (hasGoods ? ' has-goods' : '');
+        div.innerHTML = `
+            <div class="history-date">${item.date}</div>
+            <div class="history-route">${route}</div>
+            <div style="font-size:12px; color:#666; margin-bottom:10px;">
+                🚛 ${item.inp_tractor || item.tractor || '–'} / ${item.inp_trailer || item.trailer || '–'}
+                ${(item.inp_goods || item.goods) ? '<br>📦 ' + (item.inp_goods || item.goods).substring(0,60) + '…' : ''}
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-primary" style="margin:0; font-size:12px; padding:8px;" onclick="restoreHistory(${item.id})">📂 Załaduj</button>
+                <button class="btn btn-danger" style="margin:0; font-size:12px; padding:8px;" onclick="deleteHistory(${item.id})">🗑️ Usuń</button>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function restoreHistory(id) {
+    const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    const item = hist.find(x => x.id === id);
+    if(!item) return;
+    if(!confirm('Załadować tę trasę? Obecne dane CMR zostaną nadpisane.')) return;
+
+    CMR_FIELD_IDS.forEach(fid => {
+        const el = document.getElementById(fid);
+        if(el) el.value = item[fid] ?? item[fid.replace('inp_','')] ?? '';
+    });
+
+    // Restore signatures
+    ['sig1','sig2'].forEach(id => {
+        const key = '_' + id;
+        const pad = sigPads[id];
+        if(item[key] && pad) {
+            const img = new Image();
+            img.onload = () => {
+                pad.ctx.clearRect(0, 0, pad.canvas.width, pad.canvas.height);
+                pad.ctx.drawImage(img, 0, 0, pad.canvas.width, pad.canvas.height);
+            };
+            img.src = item[key];
+        } else if(pad) {
+            pad.ctx.clearRect(0, 0, pad.canvas.width, pad.canvas.height);
+        }
+    });
+
+    scheduleDraftSave();
+    nav('cmr', document.querySelector('.nav-item'));
+    toast('✅ Trasa załadowana!', 'success');
+}
+
+function deleteHistory(id) {
+    if(!confirm('Usunąć ten wpis z archiwum?')) return;
+    let hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    hist = hist.filter(x => x.id !== id);
+    localStorage.setItem('cmr_history', JSON.stringify(hist));
+    loadHistoryList();
+    toast('Wpis usunięty', 'info');
+}
+
+function clearHistory() {
+    if(!confirm('Czy na pewno wyczyścić CAŁE archiwum tras?')) return;
+    localStorage.removeItem('cmr_history');
+    loadHistoryList();
+    toast('Archiwum wyczyszczone', 'info');
+}
+
+// ============================================================
+// DATABASE
+// ============================================================
+let pkField = null;
+
+function openPicker(f) {
+    pkField = f;
+    const db = JSON.parse(localStorage.getItem('cmr_db') || '[]');
+    const l = document.getElementById('modal-list');
+    l.innerHTML = '';
+    const flt = db.filter(i => i.tag === f);
+    if(flt.length === 0) {
+        l.innerHTML = '<div style="text-align:center; padding:20px; color:#999; font-size:13px;">Brak wpisów. Dodaj w zakładce Baza.</div>';
+    }
+    flt.forEach(i => {
+        const d = document.createElement('div');
+        d.className = 'modal-item';
+        d.innerHTML = `<b>${i.name}</b><br><small style="color:#666; white-space:pre-line;">${i.val}</small>`;
+        d.onclick = () => {
+            const target = document.getElementById('inp_' + pkField);
+            if(target) { target.value = i.val; scheduleDraftSave(); clearValidation(); }
+            closeModal();
+        };
+        l.appendChild(d);
+    });
+    document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').style.display = 'none';
+}
+
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+    if(e.target === this) closeModal();
+});
+
+function saveToDb(mode) {
+    let item = { id: Date.now() };
+    if(mode === 'addr') {
+        item.name = document.getElementById('db_name').value.trim();
+        item.val  = document.getElementById('db_value').value.trim();
+        item.tag  = document.getElementById('db_type').value;
+        if(!item.name) { toast('Wpisz nazwę!', 'error'); return; }
+        if(!item.val) { toast('Wpisz dane adresowe!', 'error'); return; }
+        document.getElementById('db_name').value = '';
+        document.getElementById('db_value').value = '';
+    } else {
+        item.name = document.getElementById('db_plate').value.trim();
+        item.val  = item.name;
+        item.tag  = document.getElementById('db_vtype').value;
+        if(!item.name) { toast('Wpisz numer rejestracyjny!', 'error'); return; }
+        document.getElementById('db_plate').value = '';
+    }
+    let db = JSON.parse(localStorage.getItem('cmr_db') || '[]');
+    db.push(item);
+    localStorage.setItem('cmr_db', JSON.stringify(db));
+    toast('✅ Zapisano w bazie!', 'success');
+    loadDb();
+}
+
+function loadDb() {
+    const db = JSON.parse(localStorage.getItem('cmr_db') || '[]');
+    const l = document.getElementById('db-list');
+    l.innerHTML = '';
+    if(db.length === 0) {
+        l.innerHTML = '<li style="color:#999; font-size:13px; justify-content:center;">Baza jest pusta</li>';
+        return;
+    }
+    const TAG_LABELS = { sender:'Nadawca', consignee:'Odbiorca', pickup:'Załadunek', destination:'Dostawa', tractor:'Ciągnik', trailer:'Naczepa' };
+    db.forEach(i => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <div>
+                <div style="font-weight:bold; font-size:14px;">${i.name}</div>
+                <div style="font-size:11px; color:#888;">${TAG_LABELS[i.tag] || i.tag}</div>
+            </div>
+            <button class="btn-danger" style="width:auto; padding:6px 10px; border:none; border-radius:6px; color:white; cursor:pointer;" onclick="delDb(${i.id})">✕</button>
+        `;
+        l.appendChild(li);
+    });
+}
+
+function delDb(id) {
+    let db = JSON.parse(localStorage.getItem('cmr_db') || '[]');
+    db = db.filter(i => i.id !== id);
+    localStorage.setItem('cmr_db', JSON.stringify(db));
+    loadDb();
+    toast('Wpis usunięty', 'info');
+}
+
+// ============================================================
+// PROFILE
+// ============================================================
+function saveProfile() {
+    const d = {
+        c_name: document.getElementById('profile_c_name').value,
+        c:      document.getElementById('profile_carrier').value,
+        tr:     document.getElementById('profile_tr').value,
+        trl:    document.getElementById('profile_trl').value
+    };
+    localStorage.setItem('cmr_prof', JSON.stringify(d));
+    updateCMRFromProfile(d);
+    toast('✅ Profil zapisany!', 'success');
+}
+
+function loadProfile() {
+    const d = JSON.parse(localStorage.getItem('cmr_prof'));
+    if(!d) return;
+    if(d.c_name) document.getElementById('profile_c_name').value = d.c_name;
+    if(d.c)     document.getElementById('profile_carrier').value = d.c;
+    if(d.tr)    document.getElementById('profile_tr').value = d.tr;
+    if(d.trl)   document.getElementById('profile_trl').value = d.trl;
+    updateCMRFromProfile(d);
+}
+
+function updateCMRFromProfile(d) {
+    let carrierText = '';
+    if(d.c_name) carrierText += d.c_name.toUpperCase() + '\n';
+    if(d.c) carrierText += d.c;
+    const carrierEl = document.getElementById('inp_carrier');
+    if(carrierText && carrierEl) carrierEl.value = carrierText;
+    if(d.tr)  { const el = document.getElementById('inp_tractor'); if(el) el.value = d.tr; }
+    if(d.trl) { const el = document.getElementById('inp_trailer'); if(el) el.value = d.trl; }
+}
+
+// ============================================================
+// BACKUP
+// ============================================================
+function exportData() {
+    const backup = {
+        db:   JSON.parse(localStorage.getItem('cmr_db')      || '[]'),
+        prof: JSON.parse(localStorage.getItem('cmr_prof')    || '{}'),
+        hist: JSON.parse(localStorage.getItem('cmr_history') || '[]'),
+        sig:  localStorage.getItem('cmr_sig') || '',
+        date: new Date().toLocaleString()
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cmr_backup_' + Date.now() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast('Backup pobrany!', 'success');
+}
+
+function importData(input) {
+    const file = input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const backup = JSON.parse(e.target.result);
+            if(!confirm(`Wgrać backup z dnia: ${backup.date || '?'}?\nAktualne dane zostaną nadpisane.`)) return;
+            if(backup.db)   localStorage.setItem('cmr_db', JSON.stringify(backup.db));
+            if(backup.prof) localStorage.setItem('cmr_prof', JSON.stringify(backup.prof));
+            if(backup.hist) localStorage.setItem('cmr_history', JSON.stringify(backup.hist));
+            if(backup.sig)  localStorage.setItem('cmr_sig', backup.sig);
+            toast('✅ Backup wgrany! Odświeżanie…', 'success');
+            setTimeout(() => location.reload(), 1200);
+        } catch(err) { toast('❌ Błąd pliku backup!', 'error'); }
+    };
+    reader.readAsText(file);
+    input.value = '';
+}
+
+// ============================================================
+// SIGNATURE PADS
+// ============================================================
+const sigPads = {};
+
+function setupSignaturePad(id) {
+    const canvas = document.getElementById(id);
+    if(!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    const pad = { canvas, ctx, drawing: false };
+    sigPads[id] = pad;
+    resizeSigCanvas(pad);
+    attachSigEvents(pad);
+    return pad;
+}
+
+function resizeSigCanvas(pad) {
+    if(!pad) return;
+    const { canvas, ctx } = pad;
+    if(!canvas || canvas.offsetWidth === 0 || canvas.offsetHeight === 0) return;
+    const RES = Math.max(window.devicePixelRatio || 1, 2);
+    const newW = Math.round(canvas.offsetWidth  * RES);
+    const newH = Math.round(canvas.offsetHeight * RES);
+    if(canvas.width === newW && canvas.height === newH) return;
+
+    let snapshot = null;
+    if(canvas.width > 0 && canvas.height > 0) {
+        snapshot = document.createElement('canvas');
+        snapshot.width  = canvas.width;
+        snapshot.height = canvas.height;
+        snapshot.getContext('2d').drawImage(canvas, 0, 0);
+    }
+    canvas.width  = newW;
+    canvas.height = newH;
+    if(snapshot) ctx.drawImage(snapshot, 0, 0, snapshot.width, snapshot.height, 0, 0, newW, newH);
+}
+
+function getSigPos(pad, e) {
+    const rect = pad.canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return {
+        x: (t.clientX - rect.left)  * (pad.canvas.width  / rect.width),
+        y: (t.clientY - rect.top)   * (pad.canvas.height / rect.height)
+    };
+}
+
+function attachSigEvents(pad) {
+    const { canvas, ctx } = pad;
+    const start = (e) => {
+        e.preventDefault();
+        resizeSigCanvas(pad);
+        pad.drawing = true;
+        const rect = canvas.getBoundingClientRect();
+        ctx.lineWidth   = 2.4 * (canvas.width / rect.width);
+        ctx.lineCap     = 'round';
+        ctx.lineJoin    = 'round';
+        ctx.strokeStyle = '#000';
+        const p = getSigPos(pad, e);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+    };
+    const move = (e) => {
+        if(!pad.drawing) return;
+        e.preventDefault();
+        const p = getSigPos(pad, e);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+    };
+    const end = () => {
+        if(!pad.drawing) return;
+        pad.drawing = false;
+        scheduleDraftSave();
+    };
+    canvas.addEventListener('touchstart',  start, { passive: false });
+    canvas.addEventListener('mousedown',   start);
+    canvas.addEventListener('touchmove',   move,  { passive: false });
+    canvas.addEventListener('mousemove',   move);
+    canvas.addEventListener('touchend',    end);
+    canvas.addEventListener('mouseup',     end);
+    canvas.addEventListener('mouseleave',  end);
+}
+
+function clearSig(id) {
+    const pad = sigPads[id];
+    if(!pad) return;
+    pad.ctx.clearRect(0, 0, pad.canvas.width, pad.canvas.height);
+    scheduleDraftSave();
+}
+
+function clearP() { clearSig('profile-sig-canvas'); }
+
+function saveProfileSig() {
+    const pad = sigPads['profile-sig-canvas'];
+    if(!pad || pad.canvas.width === 0) { toast('Najpierw narysuj podpis!', 'error'); return; }
+    localStorage.setItem('cmr_sig', pad.canvas.toDataURL());
+    toast('✅ Podpis zapisany w profilu!', 'success');
+}
+
+function pasteMySig() {
+    const s = localStorage.getItem('cmr_sig');
+    if(!s) { toast('Ustaw podpis w Profilu → Twój stały podpis', 'warning'); return; }
+    const pad = sigPads['sig2'];
+    if(!pad) return;
+    const img = new Image();
+    img.onload = () => {
+        pad.ctx.clearRect(0, 0, pad.canvas.width, pad.canvas.height);
+        pad.ctx.drawImage(img, 0, 0, pad.canvas.width, pad.canvas.height);
+        scheduleDraftSave();
+    };
+    img.src = s;
+    toast('Podpis wklejony', 'success');
+}
+
+// ============================================================
+// FULLSCREEN SIGNATURE OVERLAY
+// ============================================================
+let overlaySigTarget = null;
+let overlaySigPad    = null;
+
+function setupOverlaySigPad() {
+    const canvas = document.getElementById('overlay-sig-canvas');
+    const ctx = canvas.getContext('2d');
+    const pad = { canvas, ctx, drawing: false };
+    overlaySigPad = pad;
+    attachSigEvents(pad);
+}
+
+function openOverlaySig(targetId, label) {
+    overlaySigTarget = targetId;
+    document.getElementById('sig-overlay-title').textContent = label || 'Podpis';
+    const overlay = document.getElementById('sig-overlay');
+    overlay.classList.add('open');
+
+    // Resize overlay canvas to full screen
+    const canvas = overlaySigPad.canvas;
+    const wrap = document.getElementById('sig-overlay-wrap');
+    canvas.width  = wrap.offsetWidth  * (window.devicePixelRatio || 1);
+    canvas.height = wrap.offsetHeight * (window.devicePixelRatio || 1);
+    overlaySigPad.ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function closeOverlaySig() {
+    document.getElementById('sig-overlay').classList.remove('open');
+    overlaySigTarget = null;
+}
+
+function clearOverlaySig() {
+    const c = overlaySigPad.canvas;
+    overlaySigPad.ctx.clearRect(0, 0, c.width, c.height);
+}
+
+function confirmOverlaySig() {
+    if(!overlaySigTarget) { closeOverlaySig(); return; }
+
+    // Handle profile sig canvas separately
+    if(overlaySigTarget === 'profile-sig-canvas') {
+        const profPad = sigPads['profile-sig-canvas'];
+        if(!profPad) { closeOverlaySig(); return; }
+        resizeSigCanvas(profPad);
+        profPad.ctx.clearRect(0, 0, profPad.canvas.width, profPad.canvas.height);
+        profPad.ctx.drawImage(overlaySigPad.canvas, 0, 0, profPad.canvas.width, profPad.canvas.height);
+        closeOverlaySig();
+        toast('Podpis zatwierdzony — kliknij Zapisz!', 'info');
+        return;
+    }
+
+    const destPad = sigPads[overlaySigTarget];
+    if(!destPad) { closeOverlaySig(); return; }
+    resizeSigCanvas(destPad);
+    destPad.ctx.clearRect(0, 0, destPad.canvas.width, destPad.canvas.height);
+    destPad.ctx.drawImage(overlaySigPad.canvas, 0, 0, destPad.canvas.width, destPad.canvas.height);
+    scheduleDraftSave();
+    closeOverlaySig();
+    toast('Podpis zatwierdzony!', 'success');
+}
+
+// ============================================================
+// DRAFT AUTOSAVE
+// ============================================================
+let draftTimer = null;
+
+function scheduleDraftSave() {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(saveDraft, 700);
+}
+
+function saveDraft() {
+    const fields = {};
+    CMR_FIELD_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) fields[id] = el.value;
+    });
+    const data = { fields };
+    ['sig1','sig2'].forEach(id => {
+        const pad = sigPads[id];
+        if(pad && pad.canvas.width > 0) data[id] = pad.canvas.toDataURL('image/png');
+    });
+    localStorage.setItem('cmr_draft', JSON.stringify(data));
+    const status = document.getElementById('draft-status');
+    if(status) {
+        const now = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+        status.textContent = `Zapisano roboczo o ${now}`;
+    }
+}
+
+function loadDraft() {
+    const raw = localStorage.getItem('cmr_draft');
+    if(!raw) return;
+    try {
+        const data = JSON.parse(raw);
+        if(data.fields) {
+            Object.entries(data.fields).forEach(([id, val]) => {
+                const el = document.getElementById(id);
+                if(el) el.value = val;
+            });
+        }
+        ['sig1','sig2'].forEach(id => {
+            if(data[id]) {
+                const pad = sigPads[id];
+                if(!pad) return;
+                const img = new Image();
+                img.onload = () => {
+                    resizeSigCanvas(pad);
+                    pad.ctx.drawImage(img, 0, 0, pad.canvas.width, pad.canvas.height);
+                };
+                img.src = data[id];
+            }
+        });
+    } catch(e) {}
+}
+
+// ============================================================
+// NEW CMR
+// ============================================================
+function newCMR() {
+    if(!confirm('Wyczyścić formularz CMR? Niezapisane dane zostaną utracone.')) return;
+    CMR_FIELD_IDS.forEach(id => {
+        if(KEEP_ON_NEW.includes(id)) return;
+        const el = document.getElementById(id);
+        if(el) el.value = '';
+    });
+    const f14 = document.getElementById('inp_f14');
+    if(f14) f14.value = DEFAULT_F14;
+    clearSig('sig1');
+    clearSig('sig2');
+    clearValidation();
+    localStorage.removeItem('cmr_draft');
+    const status = document.getElementById('draft-status');
+    if(status) status.textContent = '';
+    toast('✅ Nowy formularz gotowy!', 'success');
+}
+</script>
+</body>
+</html>
