@@ -208,12 +208,21 @@
 
         /* ADVANCED LAYOUT EDITOR */
         .le-mode .line-h, .le-mode .line-v { cursor: move !important; min-height: 4mm; min-width: 4mm; }
-        .le-mode .lbl, .le-mode .num { cursor: move !important; outline: 1px dashed rgba(0,86,179,0.3) !important; }
+        .le-mode .lbl, .le-mode .num { cursor: move !important; pointer-events: auto !important; outline: 1px dashed rgba(0,86,179,0.3) !important; }
         .le-mode .cmr-input { cursor: move !important; border: 2px dashed rgba(0,86,179,0.6) !important; user-select:none; -webkit-user-select:none; }
         .le-mode .sig-box { cursor: move !important; outline: 2px dashed rgba(123,47,247,0.6) !important; }
         .le-mode .le-sel { outline: 2.5px solid #0056b3 !important; box-shadow: 0 0 0 3px rgba(0,86,179,0.25) !important; z-index: 200 !important; }
         .le-mode .le-locked { outline: 1.5px dashed rgba(220,53,69,0.5) !important; }
         .le-mode .le-locked.le-sel { outline: 2.5px solid #dc3545 !important; box-shadow: 0 0 0 3px rgba(220,53,69,0.25) !important; }
+        /* Hide helper icons while editing — they cover the elements */
+        .le-mode .quick-pick, .le-mode .geo-btn, .le-mode .sig-ui-btn { display: none !important; }
+        /* Category filters: disabled categories are untouchable and faded */
+        #cmr-page.le-mode.le-hide-lines .line-h, #cmr-page.le-mode.le-hide-lines .line-v { pointer-events: none !important; cursor: default !important; min-height: 0 !important; min-width: 0 !important; }
+        #cmr-page.le-mode.le-hide-labels .lbl, #cmr-page.le-mode.le-hide-labels .num { pointer-events: none !important; cursor: default !important; outline: none !important; }
+        #cmr-page.le-mode.le-hide-inputs .cmr-input { pointer-events: none !important; cursor: default !important; border: 2px dashed rgba(0,86,179,0.12) !important; }
+        #cmr-page.le-mode.le-hide-sigs .sig-box { pointer-events: none !important; cursor: default !important; outline: 1px dashed rgba(123,47,247,0.15) !important; }
+        .le-filter-btn { border:none; border-radius:8px; padding:7px 10px; cursor:pointer; font-size:11px; font-weight:bold; background:#0056b3; color:white; white-space:nowrap; }
+        .le-filter-btn.off { background:#c3cbd8; color:#667; }
         .le-rh {
             position: absolute; width: 5mm; height: 5mm;
             background: #0056b3; border-radius: 1mm 0 0 0;
@@ -230,6 +239,8 @@
         .le-sm-btn { border:none; border-radius:6px; padding:6px 11px; cursor:pointer; font-size:13px; font-weight:bold; background:#6c757d; color:white; }
         /* No highlight mode for PDF */
         #cmr-page.no-hl .cmr-input { background: transparent !important; }
+        /* Empty date fields must not print the dd.mm.rrrr placeholder */
+        #cmr-page.no-hl input.empty-date { visibility: hidden !important; }
 
         /* Carrier (field 5) styled display */
         .carrier-display {
@@ -276,6 +287,7 @@
             }
             .cmr-input { background: transparent !important; border: none !important; }
             input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
+            input.empty-date { visibility: hidden !important; }
             * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
@@ -340,9 +352,15 @@
         <div class="btn-row" style="margin-bottom:4px;">
             <button id="layout-edit-btn" class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="requestLEMode()">📐 Edytuj układ pól</button>
         </div>
-        <div id="layout-bar" style="display:none; background:#e8eeff; border-radius:8px; padding:9px 12px; margin-bottom:8px; flex-direction:row; align-items:center; gap:8px;">
-            <span style="font-size:11px; color:#0056b3; flex:1;">✏️ Przeciągaj pole = przesuń &nbsp;·&nbsp; niebieski róg = zmień rozmiar</span>
-            <button class="btn btn-danger" style="margin:0; font-size:11px; padding:7px 10px; width:auto;" onclick="resetFullLayout()">↩ Reset układu</button>
+        <div id="layout-bar" style="display:none; background:#e8eeff; border-radius:8px; padding:9px 12px; margin-bottom:8px; flex-direction:column; gap:7px;">
+            <div style="font-size:11px; color:#0056b3;">✏️ Kliknij element = wybierz · przeciągnij = przesuń · niebieski róg = rozmiar. Włącz tylko to, co chcesz edytować:</div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                <button id="le-f-lines"  class="le-filter-btn" onclick="toggleLEFilter('lines', this)">📏 Linie</button>
+                <button id="le-f-labels" class="le-filter-btn" onclick="toggleLEFilter('labels', this)">🔤 Napisy</button>
+                <button id="le-f-inputs" class="le-filter-btn" onclick="toggleLEFilter('inputs', this)">📝 Pola</button>
+                <button id="le-f-sigs"   class="le-filter-btn" onclick="toggleLEFilter('sigs', this)">✍️ Podpisy</button>
+                <button class="btn btn-danger" style="margin:0 0 0 auto; font-size:11px; padding:7px 10px; width:auto;" onclick="resetFullLayout()">↩ Reset</button>
+            </div>
         </div>
         <div id="validation-banner"></div>
         <div style="text-align:center; font-size:11px; color:#999;">PDF → pobierz i wydrukuj na drukarce mobilnej</div>
@@ -352,7 +370,7 @@
     <div class="cmr-wrapper">
         <div class="page" id="cmr-page">
             <div class="lbl lbl-title" style="top:9mm; left:8mm;">LETTRE DE VOITURE INTERNATIONALE</div>
-            <div style="position:absolute; top:7mm; left:100mm; width:35px; height:20px; border:1px solid #000; border-radius:50%; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:9pt; z-index:20;">CMR</div>
+            <div class="lbl" id="cmr-logo-oval" style="top:7mm; left:100mm; width:9mm; height:5.3mm; border:1px solid #000; border-radius:50%; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:9pt; z-index:20; line-height:normal;">CMR</div>
             <div class="lbl lbl-title" style="top:9mm; right:8mm;">INTERNATIONAL CONSIGNMENT NOTE</div>
             <div class="line-h" style="top:15mm; left:8mm; width:194mm;"></div>
             <div class="line-v" style="top:15mm; left:8mm; height:275mm;"></div>
@@ -446,9 +464,9 @@ www.nolantransport.com</textarea>
             <textarea id="inp_weight" class="cmr-input" style="top:129mm; left:156mm; width:21mm; height:66mm; text-align:center;"></textarea>
             <textarea id="inp_vol" class="cmr-input" style="top:129mm; left:179mm; width:22mm; height:66mm; text-align:center;"></textarea>
 
-            <!-- PALLETS -->
+            <!-- PALLETS — two equal 10mm rows (195–205, 205–215) -->
             <div class="line-h" style="top:195mm; left:8mm; width:147mm;"></div>
-            <div class="line-h" style="top:207mm; left:8mm; width:147mm;"></div>
+            <div class="line-h" style="top:205mm; left:8mm; width:147mm;"></div>
             <div class="line-v" style="top:195mm; left:80mm; height:20mm;"></div>
             <div class="line-v" style="top:195mm; left:33mm; height:20mm;"></div>
             <div class="line-v" style="top:195mm; left:103mm; height:20mm;"></div>
@@ -456,19 +474,19 @@ www.nolantransport.com</textarea>
 
             <div class="lbl lbl-bold" style="top:192mm; left:35mm; width:30mm; text-align:center;">LOADING POINT</div>
             <div class="lbl lbl-bold" style="top:198mm; left:9mm; width:24mm;">PALLETS IN:</div>
-            <input id="inp_pal_lin" class="cmr-input" list="pallet-opts" style="top:196mm; left:34mm; width:45mm; height:10mm; text-align:center;">
-            <div class="lbl lbl-bold" style="top:210mm; left:9mm; width:24mm;">PALLETS OUT:</div>
-            <input id="inp_pal_lout" class="cmr-input" list="pallet-opts" style="top:208mm; left:34mm; width:45mm; height:7mm; text-align:center;">
+            <input id="inp_pal_lin" class="cmr-input" list="pallet-opts" style="top:196mm; left:34mm; width:45mm; height:8mm; text-align:center;">
+            <div class="lbl lbl-bold" style="top:208mm; left:9mm; width:24mm;">PALLETS OUT:</div>
+            <input id="inp_pal_lout" class="cmr-input" list="pallet-opts" style="top:206mm; left:34mm; width:45mm; height:8mm; text-align:center;">
 
             <div class="lbl lbl-bold" style="top:192mm; left:105mm; width:30mm; text-align:center;">DELIVERY POINT</div>
             <div class="lbl lbl-bold" style="top:198mm; left:82mm; width:20mm;">PALLETS IN:</div>
-            <input id="inp_pal_din" class="cmr-input" list="pallet-opts" style="top:196mm; left:104mm; width:42mm; height:10mm; text-align:center;">
-            <div class="lbl lbl-bold" style="top:210mm; left:82mm; width:20mm;">PALLETS OUT:</div>
-            <input id="inp_pal_dout" class="cmr-input" list="pallet-opts" style="top:208mm; left:104mm; width:42mm; height:7mm; text-align:center;">
+            <input id="inp_pal_din" class="cmr-input" list="pallet-opts" style="top:196mm; left:104mm; width:42mm; height:8mm; text-align:center;">
+            <div class="lbl lbl-bold" style="top:208mm; left:82mm; width:20mm;">PALLETS OUT:</div>
+            <input id="inp_pal_dout" class="cmr-input" list="pallet-opts" style="top:206mm; left:104mm; width:42mm; height:8mm; text-align:center;">
 
-            <!-- FIELDS 12 & 13 -->
+            <!-- FIELDS 12 & 13 (divider at 105mm, row 215–230) -->
             <div class="line-h" style="top:215mm; left:8mm; width:194mm;"></div>
-            <div class="line-v" style="top:215mm; left:105mm; height:45mm;"></div>
+            <div class="line-v" style="top:215mm; left:105mm; height:15mm;"></div>
             <div class="num" style="top:216mm; left:99mm;">12</div>
             <div class="lbl" style="top:216mm; left:9mm;">Carriage Charges. Prix de transport.</div>
             <input id="inp_f12" class="cmr-input" style="top:219mm; left:9mm; width:95mm; height:8mm;">
@@ -477,23 +495,24 @@ www.nolantransport.com</textarea>
             <div class="lbl" style="top:216mm; left:106mm;">Senders Instructions for Customs, etc... Instructions de l'expéditeur (optional)</div>
             <input id="inp_f13" class="cmr-input" style="top:219mm; left:106mm; width:95mm; height:8mm;">
 
-            <!-- FIELDS 14 & 15 -->
+            <!-- FIELDS 14 & 15/16 (divider at 80mm like original, row 230–260) -->
             <div class="line-h" style="top:230mm; left:8mm; width:194mm;"></div>
-            <div class="num" style="top:231mm; left:99mm;">14</div>
+            <div class="line-v" style="top:230mm; left:80mm; height:30mm;"></div>
+            <div class="num" style="top:231mm; left:74mm;">14</div>
             <div class="lbl" style="top:231mm; left:9mm;">Reservations. Réserves.</div>
-            <textarea id="inp_f14" class="cmr-input" style="top:236mm; left:9mm; width:95mm; height:10mm; font-size:7pt; font-weight:900; background:transparent; text-align:center;">THE CARRIER ACCEPTS NO RESPONSIBILITY FOR THE QUALITY OR QUANTITY OF THE GOODS LOADED</textarea>
+            <textarea id="inp_f14" class="cmr-input" style="top:238mm; left:9mm; width:66mm; height:14mm; font-size:7pt; font-weight:900; background:transparent; text-align:center;">THE CARRIER ACCEPTS NO RESPONSIBILITY FOR THE QUALITY OR QUANTITY OF THE GOODS LOADED</textarea>
 
             <div class="num" style="top:231mm; left:196mm;">15</div>
-            <div class="lbl" style="top:231mm; left:106mm;">Documents Attached. Documents Annexés (optional)</div>
-            <input id="inp_f15" class="cmr-input" style="top:235mm; left:106mm; width:95mm; height:8mm;">
+            <div class="lbl" style="top:231mm; left:81mm;">Documents Attached. Documents Annexés (optional)</div>
+            <input id="inp_f15" class="cmr-input" style="top:235mm; left:81mm; width:120mm; height:8mm;">
 
             <!-- FIELD 16: TEMP -->
-            <div class="num" style="top:250mm; left:196mm;">16</div>
-            <div class="lbl" style="top:250mm; left:106mm;">Special Agreements. Conventions particulières (optional).</div>
-            <div class="lbl lbl-bold" style="top:254mm; left:106mm;">TEMPERATURE SETTINGS AT:</div>
-            <input id="inp_temp1" class="cmr-input" style="top:253mm; left:145mm; width:20mm; height:5mm; background:transparent; text-align:center;">
-            <div class="lbl lbl-bold" style="top:254mm; left:167mm;">DEGREES CENTIGRADE</div>
-            <input id="inp_temp2" class="cmr-input" style="top:253mm; left:185mm; width:20mm; height:5mm; background:transparent; text-align:center;">
+            <div class="num" style="top:246mm; left:196mm;">16</div>
+            <div class="lbl" style="top:246mm; left:81mm;">Special Agreements. Conventions particulières (optional).</div>
+            <div class="lbl lbl-bold" style="top:253mm; left:81mm;">TEMPERATURE SETTINGS AT:</div>
+            <input id="inp_temp1" class="cmr-input" style="top:252mm; left:120mm; width:20mm; height:5mm; background:transparent; text-align:center;">
+            <div class="lbl lbl-bold" style="top:253mm; left:143mm;">DEGREES CENTIGRADE</div>
+            <input id="inp_temp2" class="cmr-input" style="top:252mm; left:175mm; width:20mm; height:5mm; background:transparent; text-align:center;">
 
             <!-- SIGNATURE SECTION -->
             <div class="line-h" style="top:260mm; left:8mm; width:194mm;"></div>
@@ -773,6 +792,8 @@ window.addEventListener('load', () => {
     window.addEventListener('resize', () => {
         Object.values(sigPads).forEach(p => resizeSigCanvas(p));
     });
+    window.addEventListener('beforeprint', markEmptyDates);
+    markEmptyDates();
 
     // PWA service worker
     if('serviceWorker' in navigator) {
@@ -845,11 +866,19 @@ function clearValidation() {
 // ============================================================
 // PRINT
 // ============================================================
+// Tag empty date inputs so print/PDF hides the dd.mm.rrrr placeholder
+function markEmptyDates() {
+    document.querySelectorAll('#cmr-page input[type="date"]').forEach(el => {
+        el.classList.toggle('empty-date', !el.value);
+    });
+}
+
 function printCMR() {
     if(!validateForm()) {
         toast('Uzupełnij wymagane pola przed drukowaniem', 'error');
         return;
     }
+    markEmptyDates();
     window.print();
 }
 
@@ -886,6 +915,7 @@ async function generatePDF() {
         page.style.marginBottom = '0';
         page.style.marginRight = '0';
         page.classList.add('no-hl');
+        markEmptyDates();
         toHide.forEach(el => el.style.visibility = 'hidden');
 
         await new Promise(r => setTimeout(r, 120));
@@ -1677,8 +1707,9 @@ function activateLEMode() {
     page.classList.add('le-mode');
     if(bar) bar.style.display = 'flex';
     if(btn) { btn.textContent = '✅ Wyjdź z edytora'; btn.style.background = '#28a745'; }
+    resetLEFilter();
     injectLERHs();
-    toast('Edytor aktywny — kliknij element aby wybrać. Niebieski róg = zmień rozmiar.', 'info', 5000);
+    toast('Edytor aktywny — przyciskami Linie/Napisy/Pola/Podpisy wybierz co edytujesz.', 'info', 5000);
 }
 
 function deactivateLEMode() {
@@ -1882,11 +1913,46 @@ function toggleLELock() {
     saveFullLayout();
 }
 
+// ---- Category filters ----
+let leFilter = {lines: true, labels: true, inputs: true, sigs: true};
+
+function toggleLEFilter(cat, btn) {
+    leFilter[cat] = !leFilter[cat];
+    if(btn) btn.classList.toggle('off', !leFilter[cat]);
+    applyLEFilterClasses();
+    deselectLE();
+    if(leActive) injectLERHs();
+}
+
+function applyLEFilterClasses() {
+    const page = document.getElementById('cmr-page');
+    if(!page) return;
+    page.classList.toggle('le-hide-lines',  !leFilter.lines);
+    page.classList.toggle('le-hide-labels', !leFilter.labels);
+    page.classList.toggle('le-hide-inputs', !leFilter.inputs);
+    page.classList.toggle('le-hide-sigs',   !leFilter.sigs);
+}
+
+function resetLEFilter() {
+    leFilter = {lines: true, labels: true, inputs: true, sigs: true};
+    ['le-f-lines','le-f-labels','le-f-inputs','le-f-sigs'].forEach(id => {
+        const b = document.getElementById(id);
+        if(b) b.classList.remove('off');
+    });
+    applyLEFilterClasses();
+}
+
 // ---- Resize handles ----
 function injectLERHs() {
     removeLERHs();
     const page = document.getElementById('cmr-page');
-    page.querySelectorAll('.line-h, .line-v, .lbl, .cmr-input, .sig-box').forEach(el => {
+    const sel = [];
+    if(leFilter.lines)  sel.push('.line-h', '.line-v');
+    if(leFilter.labels) sel.push('.lbl');
+    if(leFilter.inputs) sel.push('.cmr-input');
+    if(leFilter.sigs)   sel.push('.sig-box');
+    if(!sel.length) return;
+    page.querySelectorAll(sel.join(', ')).forEach(el => {
         const rh = document.createElement('div');
         rh.className = 'le-rh';
         updateLERHPos(el, rh);
@@ -1975,7 +2041,7 @@ function onLEEnd() {
 // ---- Save / load / reset ----
 // Bump when CMR element structure changes — old saved layouts map le-ids
 // to different elements and would scramble the form.
-const LE_LAYOUT_VER = 2;
+const LE_LAYOUT_VER = 3;
 
 function saveFullLayout() {
     const page = document.getElementById('cmr-page');
