@@ -206,27 +206,30 @@
             border-radius: 8px; font-size: 13px; margin-bottom: 8px; text-align: center;
         }
 
-        /* LAYOUT EDITOR */
-        .layout-edit .cmr-input {
-            cursor: move !important;
-            border: 2px dashed rgba(0,86,179,0.75) !important;
-            background: rgba(255,253,231,0.92) !important;
-            user-select: none; -webkit-user-select: none;
-        }
-        .layout-edit .sig-box {
-            outline: 2px dashed rgba(123,47,247,0.75) !important;
-            cursor: move !important;
-        }
-        .layout-rh {
-            position: absolute;
-            width: 5mm; height: 5mm;
-            background: #0056b3;
-            border-radius: 1mm 0 0 0;
-            cursor: se-resize;
-            z-index: 501;
-            touch-action: none;
+        /* ADVANCED LAYOUT EDITOR */
+        .le-mode .line-h, .le-mode .line-v { cursor: move !important; min-height: 4mm; min-width: 4mm; }
+        .le-mode .lbl, .le-mode .num { cursor: move !important; outline: 1px dashed rgba(0,86,179,0.3) !important; }
+        .le-mode .cmr-input { cursor: move !important; border: 2px dashed rgba(0,86,179,0.6) !important; user-select:none; -webkit-user-select:none; }
+        .le-mode .sig-box { cursor: move !important; outline: 2px dashed rgba(123,47,247,0.6) !important; }
+        .le-mode .le-sel { outline: 2.5px solid #0056b3 !important; box-shadow: 0 0 0 3px rgba(0,86,179,0.25) !important; z-index: 200 !important; }
+        .le-mode .le-locked { outline: 1.5px dashed rgba(220,53,69,0.5) !important; }
+        .le-mode .le-locked.le-sel { outline: 2.5px solid #dc3545 !important; box-shadow: 0 0 0 3px rgba(220,53,69,0.25) !important; }
+        .le-rh {
+            position: absolute; width: 5mm; height: 5mm;
+            background: #0056b3; border-radius: 1mm 0 0 0;
+            cursor: se-resize; z-index: 600; touch-action: none;
             box-shadow: 0 1px 4px rgba(0,0,0,0.35);
         }
+        #le-tb {
+            display: none; position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+            background: white; border-radius: 14px; padding: 13px 15px;
+            box-shadow: 0 6px 30px rgba(0,0,0,0.25); z-index: 9500;
+            width: min(96vw, 460px); border: 1px solid #dde4ff;
+        }
+        .le-num-in { width:100%; border:1px solid #ccc; border-radius:6px; padding:5px 4px; font-size:13px; box-sizing:border-box; text-align:center; }
+        .le-sm-btn { border:none; border-radius:6px; padding:6px 11px; cursor:pointer; font-size:13px; font-weight:bold; background:#6c757d; color:white; }
+        /* No highlight mode for PDF */
+        #cmr-page.no-hl .cmr-input { background: transparent !important; }
 
         /* PRINT STYLES */
         @media print {
@@ -306,11 +309,11 @@
             <button class="btn btn-gray" onclick="newCMR()">🆕 NOWY</button>
         </div>
         <div class="btn-row" style="margin-bottom:4px;">
-            <button id="layout-edit-btn" class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="toggleLayoutEdit()">📐 Edytuj układ pól</button>
+            <button id="layout-edit-btn" class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="requestLEMode()">📐 Edytuj układ pól</button>
         </div>
         <div id="layout-bar" style="display:none; background:#e8eeff; border-radius:8px; padding:9px 12px; margin-bottom:8px; flex-direction:row; align-items:center; gap:8px;">
             <span style="font-size:11px; color:#0056b3; flex:1;">✏️ Przeciągaj pole = przesuń &nbsp;·&nbsp; niebieski róg = zmień rozmiar</span>
-            <button class="btn btn-danger" style="margin:0; font-size:11px; padding:7px 10px; width:auto;" onclick="resetLayout()">↩ Reset</button>
+            <button class="btn btn-danger" style="margin:0; font-size:11px; padding:7px 10px; width:auto;" onclick="resetFullLayout()">↩ Reset układu</button>
         </div>
         <div id="validation-banner"></div>
         <div style="text-align:center; font-size:11px; color:#999;">PDF → pobierz i wydrukuj na drukarce mobilnej</div>
@@ -590,6 +593,20 @@ Tel: +353 51 421965  |  sales@nolantransport.com</textarea>
         </div>
     </div>
 
+    <div class="card" style="border:2px solid #0056b3;">
+        <h3 style="margin-top:0; color:#0056b3; border-bottom:1px solid #b3c8f0; padding-bottom:10px;">🔧 Edytor zaawansowany CMR</h3>
+        <p style="font-size:12px; color:#555; margin:0 0 12px;">Pozwala przesuwać i zmieniać WSZYSTKIE elementy: linie, napisy, pola, podpisy, czcionki. Wymagany kod dostępu.</p>
+        <div id="le-prof-locked">
+            <input id="le-prof-pin" type="password" inputmode="numeric" maxlength="4" class="app-input" placeholder="Kod dostępu (4 cyfry)" style="text-align:center;letter-spacing:6px;" onkeydown="if(event.key==='Enter') unlockLEFromProfile()">
+            <button class="btn btn-primary" onclick="unlockLEFromProfile()">🔓 Odblokuj edytor</button>
+        </div>
+        <div id="le-prof-unlocked" style="display:none;">
+            <p style="color:#28a745; font-weight:bold; margin:0 0 10px;">✅ Edytor odblokowany na tę sesję</p>
+            <button class="btn btn-primary" onclick="launchLEFromProfile()">🔧 Uruchom edytor CMR</button>
+            <button class="btn btn-danger" style="margin-top:8px;" onclick="resetFullLayout()">↩ Przywróć domyślny układ</button>
+        </div>
+    </div>
+
     <div class="card" style="background:#e3f2fd; border:1px solid #bbdefb;">
         <h3 style="margin-top:0; border-bottom:1px solid #bbdefb; padding-bottom:10px; color:#0d47a1;">💾 Kopia Zapasowa</h3>
         <button class="btn" style="background:#1976d2;" onclick="exportData()">⬇️ Pobierz Backup</button>
@@ -602,6 +619,44 @@ Tel: +353 51 421965  |  sales@nolantransport.com</textarea>
     <div style="height:20px;"></div>
     <button class="btn btn-primary" onclick="saveProfile()">💾 ZAPISZ USTAWIENIA</button>
     <br><br>
+</div>
+
+<!-- ADVANCED EDITOR TOOLBAR -->
+<div id="le-tb">
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+        <span id="le-tb-type" style="font-size:12px; font-weight:bold; color:#0056b3; flex:1;"></span>
+        <button class="le-sm-btn" id="le-lock-btn" onclick="toggleLELock()">🔓 Zablokuj</button>
+        <button class="le-sm-btn" style="background:#dc3545;" onclick="deselectLE()">✕</button>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-bottom:8px;">
+        <div><div style="font-size:9px;color:#888;margin-bottom:3px;">Góra (mm)</div><input id="le-top" type="number" step="0.5" class="le-num-in" oninput="applyLETBPos()"></div>
+        <div><div style="font-size:9px;color:#888;margin-bottom:3px;">Lewo (mm)</div><input id="le-left" type="number" step="0.5" class="le-num-in" oninput="applyLETBPos()"></div>
+        <div id="le-w-row"><div style="font-size:9px;color:#888;margin-bottom:3px;">Szer. (mm)</div><input id="le-width" type="number" step="0.5" class="le-num-in" oninput="applyLETBPos()"></div>
+        <div id="le-h-row"><div style="font-size:9px;color:#888;margin-bottom:3px;">Wys. (mm)</div><input id="le-height" type="number" step="0.5" class="le-num-in" oninput="applyLETBPos()"></div>
+    </div>
+    <div id="le-font-row" style="display:none; align-items:center; gap:8px; margin-bottom:8px;">
+        <span style="font-size:11px;color:#555;">Czcionka:</span>
+        <button class="le-sm-btn" onclick="changeLEFont(-0.5)">−</button>
+        <span id="le-font-val" style="font-size:13px;font-weight:bold;min-width:36px;text-align:center;"></span>
+        <span style="font-size:11px;color:#888;">pt</span>
+        <button class="le-sm-btn" onclick="changeLEFont(+0.5)">+</button>
+    </div>
+    <div id="le-text-row" style="display:none;">
+        <div style="font-size:9px;color:#888;margin-bottom:3px;">Tekst napisu:</div>
+        <textarea id="le-text" rows="2" oninput="applyLEText()" style="width:100%;font-size:12px;border:1px solid #ddd;border-radius:6px;padding:5px;box-sizing:border-box;resize:vertical;"></textarea>
+    </div>
+</div>
+
+<!-- PIN MODAL -->
+<div id="le-pin-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.72); z-index:9990; justify-content:center; align-items:center;">
+    <div style="background:white; border-radius:16px; padding:24px 20px; width:min(90vw,310px); text-align:center; box-shadow:0 8px 40px rgba(0,0,0,0.3);">
+        <div style="font-size:32px; margin-bottom:8px;">🔐</div>
+        <h3 style="margin:0 0 6px; color:#1a2b40;">Edytor zaawansowany</h3>
+        <p style="font-size:12px; color:#666; margin:0 0 16px;">Wpisz kod dostępu aby edytować linie, napisy i czcionki CMR:</p>
+        <input id="le-pin-input" type="password" inputmode="numeric" maxlength="4" class="app-input" placeholder="••••" style="text-align:center;font-size:24px;letter-spacing:8px;margin-bottom:12px;" onkeydown="if(event.key==='Enter') checkLEPin()">
+        <button class="btn btn-primary" style="margin-bottom:8px;" onclick="checkLEPin()">🔓 Odblokuj</button>
+        <button class="btn btn-gray" style="margin-top:0;" onclick="document.getElementById('le-pin-modal').style.display='none'">Anuluj</button>
+    </div>
 </div>
 
 <!-- NAVIGATION -->
@@ -663,12 +718,13 @@ window.addEventListener('load', () => {
     setupSignaturePad('sig2');
     setupSignaturePad('profile-sig-canvas');
     setupOverlaySigPad();
-    initLayoutDragHandlers();
+    tagLEElements();
+    initLEHandlers();
 
     const savedProf = localStorage.getItem('cmr_prof');
     if(savedProf) loadProfile();
 
-    applyLayout();
+    loadFullLayout();
     loadDraft();
     loadHistoryList();
 
@@ -789,10 +845,11 @@ async function generatePDF() {
     toast('Generowanie PDF…', 'info', 8000);
 
     try {
-        // Temporarily disable mobile scale
+        // Temporarily disable mobile scale and yellow highlights
         page.style.transform = 'none';
         page.style.marginBottom = '0';
         page.style.marginRight = '0';
+        page.classList.add('no-hl');
         toHide.forEach(el => el.style.visibility = 'hidden');
 
         await new Promise(r => setTimeout(r, 120));
@@ -832,6 +889,7 @@ async function generatePDF() {
         page.style.marginBottom = hadMarginB;
         page.style.marginRight = hadMarginR;
         toHide.forEach(el => el.style.visibility = '');
+        page.classList.remove('no-hl');
     }
 }
 
@@ -1461,12 +1519,15 @@ function newCMR() {
 }
 
 // ============================================================
-// LAYOUT EDITOR
+// ADVANCED LAYOUT EDITOR
 // ============================================================
-let layoutEditMode = false;
-let layoutDrag     = null;
-let layoutRHs      = [];
-const CSS_PX_MM    = 96 / 25.4;
+const CSS_PX_MM  = 96 / 25.4;
+let leUnlocked   = false;
+let leActive     = false;
+let leSelected   = null;
+let leDrag       = null;
+let leRHs        = [];
+let leLockedIds  = new Set();
 
 function getPageScale() {
     const t = getComputedStyle(document.getElementById('cmr-page')).transform;
@@ -1475,117 +1536,272 @@ function getPageScale() {
     return Math.abs(m.a) || 1;
 }
 
-function toggleLayoutEdit() {
-    layoutEditMode = !layoutEditMode;
-    const btn  = document.getElementById('layout-edit-btn');
+// ---- PIN / unlock ----
+function requestLEMode() {
+    if(leUnlocked) {
+        if(leActive) deactivateLEMode();
+        else {
+            if(!confirm('Uruchomić zaawansowany edytor CMR?\n\nBędziesz mógł przesuwać i edytować WSZYSTKIE elementy: linie, napisy, pola, podpisy, czcionki.')) return;
+            activateLEMode();
+        }
+    } else {
+        document.getElementById('le-pin-input').value = '';
+        document.getElementById('le-pin-modal').style.display = 'flex';
+        setTimeout(() => document.getElementById('le-pin-input').focus(), 100);
+    }
+}
+
+function checkLEPin() {
+    const val = document.getElementById('le-pin-input').value.trim();
+    if(val === '1221') {
+        leUnlocked = true;
+        document.getElementById('le-pin-modal').style.display = 'none';
+        const pl = document.getElementById('le-prof-locked');
+        const pu = document.getElementById('le-prof-unlocked');
+        if(pl) pl.style.display = 'none';
+        if(pu) pu.style.display = 'block';
+        if(!confirm('Uruchomić zaawansowany edytor CMR?\n\nBędziesz mógł przesuwać i edytować WSZYSTKIE elementy: linie, napisy, pola, podpisy, czcionki.')) return;
+        activateLEMode();
+    } else {
+        toast('Nieprawidłowy kod!', 'error');
+        document.getElementById('le-pin-input').value = '';
+    }
+}
+
+function unlockLEFromProfile() {
+    const inp = document.getElementById('le-prof-pin');
+    const val = inp ? inp.value.trim() : '';
+    if(val === '1221') {
+        leUnlocked = true;
+        const pl = document.getElementById('le-prof-locked');
+        const pu = document.getElementById('le-prof-unlocked');
+        if(pl) pl.style.display = 'none';
+        if(pu) pu.style.display = 'block';
+        toast('Edytor odblokowany!', 'success');
+    } else {
+        toast('Nieprawidłowy kod!', 'error');
+        if(inp) inp.value = '';
+    }
+}
+
+function launchLEFromProfile() {
+    if(!leUnlocked) { toast('Najpierw odblokuj edytor kodem', 'error'); return; }
+    showView('cmr');
+    if(!confirm('Uruchomić zaawansowany edytor CMR?')) return;
+    activateLEMode();
+}
+
+// ---- Activate / deactivate ----
+function activateLEMode() {
+    leActive = true;
     const page = document.getElementById('cmr-page');
     const bar  = document.getElementById('layout-bar');
-    if(layoutEditMode) {
-        page.classList.add('layout-edit');
-        bar.style.display  = 'flex';
-        btn.textContent    = '✅ Zapisz układ';
-        btn.style.background = '#28a745';
-        injectResizeHandles();
-        toast('Przeciągaj pole = przesuń. Niebieski narożnik = zmień rozmiar.', 'info', 5000);
-    } else {
-        page.classList.remove('layout-edit');
-        bar.style.display  = 'none';
-        btn.textContent    = '📐 Edytuj układ pól';
-        btn.style.background = '';
-        removeResizeHandles();
-        saveLayout();
-        toast('✅ Układ zapisany!', 'success');
-    }
+    const btn  = document.getElementById('layout-edit-btn');
+    page.classList.add('le-mode');
+    if(bar) bar.style.display = 'flex';
+    if(btn) { btn.textContent = '✅ Wyjdź z edytora'; btn.style.background = '#28a745'; }
+    injectLERHs();
+    toast('Edytor aktywny — kliknij element aby wybrać. Niebieski róg = zmień rozmiar.', 'info', 5000);
 }
 
-function resetLayout() {
-    if(!confirm('Przywrócić domyślny układ wszystkich pól CMR?')) return;
-    localStorage.removeItem('cmr_layout');
-    if(layoutEditMode) {
-        layoutEditMode = false;
-        document.getElementById('cmr-page').classList.remove('layout-edit');
-        document.getElementById('layout-bar').style.display = 'none';
-        document.getElementById('layout-edit-btn').textContent = '📐 Edytuj układ pól';
-        document.getElementById('layout-edit-btn').style.background = '';
-        removeResizeHandles();
-    }
-    location.reload();
-}
-
-function saveLayout() {
-    const layout = {};
-    document.querySelectorAll('#cmr-page .cmr-input').forEach(el => {
-        if(el.id) layout[el.id] = {
-            top:    el.style.top,
-            left:   el.style.left,
-            width:  el.style.width,
-            height: el.style.height
-        };
-    });
-    document.querySelectorAll('#cmr-page .sig-box').forEach((el, i) => {
-        layout['__sigbox' + i] = {
-            top:    el.style.top,
-            left:   el.style.left,
-            width:  el.style.width,
-            height: el.style.height
-        };
-    });
-    localStorage.setItem('cmr_layout', JSON.stringify(layout));
-}
-
-function applyLayout() {
-    const raw = localStorage.getItem('cmr_layout');
-    if(!raw) return;
-    try {
-        const layout = JSON.parse(raw);
-        document.querySelectorAll('#cmr-page .cmr-input').forEach(el => {
-            const p = el.id && layout[el.id];
-            if(!p) return;
-            if(p.top)    el.style.top    = p.top;
-            if(p.left)   el.style.left   = p.left;
-            if(p.width)  el.style.width  = p.width;
-            if(p.height) el.style.height = p.height;
-        });
-        document.querySelectorAll('#cmr-page .sig-box').forEach((el, i) => {
-            const p = layout['__sigbox' + i];
-            if(!p) return;
-            if(p.top)    el.style.top    = p.top;
-            if(p.left)   el.style.left   = p.left;
-            if(p.width)  el.style.width  = p.width;
-            if(p.height) el.style.height = p.height;
-        });
-    } catch(e) {}
-}
-
-function injectResizeHandles() {
+function deactivateLEMode() {
+    leActive = false;
+    deselectLE();
     const page = document.getElementById('cmr-page');
-    const targets = [
-        ...document.querySelectorAll('#cmr-page .cmr-input'),
-        ...document.querySelectorAll('#cmr-page .sig-box')
-    ];
-    targets.forEach(el => {
+    const bar  = document.getElementById('layout-bar');
+    const btn  = document.getElementById('layout-edit-btn');
+    page.classList.remove('le-mode');
+    if(bar) bar.style.display = 'none';
+    if(btn) { btn.textContent = '📐 Edytuj układ pól'; btn.style.background = ''; }
+    removeLERHs();
+    saveFullLayout();
+    toast('Układ zapisany!', 'success');
+}
+
+// ---- Tag elements ----
+function tagLEElements() {
+    let n = 0;
+    const page = document.getElementById('cmr-page');
+    if(!page) return;
+    page.querySelectorAll('.line-h, .line-v, .lbl, .num, .cmr-input, .sig-box').forEach(el => {
+        if(!el.dataset.leId) el.dataset.leId = 'le-' + (++n);
+    });
+}
+
+// ---- Selection ----
+function selectLE(el) {
+    if(leSelected && leSelected !== el) leSelected.classList.remove('le-sel');
+    leSelected = el;
+    el.classList.add('le-sel');
+    showLETB(el);
+}
+
+function deselectLE() {
+    if(leSelected) { leSelected.classList.remove('le-sel'); leSelected = null; }
+    hideLETB();
+}
+
+// ---- Toolbar ----
+function showLETB(el) {
+    const tb = document.getElementById('le-tb');
+    if(!tb) return;
+    tb.style.display = 'block';
+
+    let typeLabel = 'Element';
+    if(el.classList.contains('line-h'))     typeLabel = 'Linia pozioma';
+    else if(el.classList.contains('line-v'))     typeLabel = 'Linia pionowa';
+    else if(el.classList.contains('lbl'))        typeLabel = 'Napis';
+    else if(el.classList.contains('num'))        typeLabel = 'Numer pola';
+    else if(el.classList.contains('cmr-input'))  typeLabel = 'Pole';
+    else if(el.classList.contains('sig-box'))    typeLabel = 'Pole podpisu';
+    document.getElementById('le-tb-type').textContent = typeLabel;
+
+    const lid    = el.dataset.leId;
+    const locked = lid && leLockedIds.has(lid);
+    const lBtn   = document.getElementById('le-lock-btn');
+    if(lBtn) {
+        lBtn.textContent       = locked ? '🔒 Odblokuj' : '🔓 Zablokuj';
+        lBtn.style.background  = locked ? '#dc3545'     : '#6c757d';
+    }
+
+    document.getElementById('le-top').value  = (parseFloat(el.style.top)  || 0).toFixed(1);
+    document.getElementById('le-left').value = (parseFloat(el.style.left) || 0).toFixed(1);
+
+    const isLineH = el.classList.contains('line-h');
+    const isLineV = el.classList.contains('line-v');
+    const wRow = document.getElementById('le-w-row');
+    const hRow = document.getElementById('le-h-row');
+    if(isLineH) {
+        if(wRow) wRow.style.display = 'block';
+        if(hRow) hRow.style.display = 'none';
+        document.getElementById('le-width').value = (parseFloat(el.style.width) || 0).toFixed(1);
+    } else if(isLineV) {
+        if(wRow) wRow.style.display = 'none';
+        if(hRow) hRow.style.display = 'block';
+        document.getElementById('le-height').value = (parseFloat(el.style.height) || 0).toFixed(1);
+    } else {
+        if(wRow) wRow.style.display = 'block';
+        if(hRow) hRow.style.display = 'block';
+        document.getElementById('le-width').value  = (parseFloat(el.style.width)  || 0).toFixed(1);
+        document.getElementById('le-height').value = (parseFloat(el.style.height) || 0).toFixed(1);
+    }
+
+    const hasFont = el.classList.contains('lbl') || el.classList.contains('num') || el.classList.contains('cmr-input');
+    const fontRow = document.getElementById('le-font-row');
+    if(fontRow) {
+        fontRow.style.display = hasFont ? 'flex' : 'none';
+        if(hasFont) document.getElementById('le-font-val').textContent = getFontSizePt(el).toFixed(1);
+    }
+
+    const hasText = el.classList.contains('lbl') || el.classList.contains('num');
+    const textRow = document.getElementById('le-text-row');
+    if(textRow) {
+        textRow.style.display = hasText ? 'block' : 'none';
+        if(hasText) document.getElementById('le-text').value = el.innerText;
+    }
+}
+
+function hideLETB() {
+    const tb = document.getElementById('le-tb');
+    if(tb) tb.style.display = 'none';
+}
+
+// ---- Toolbar apply ----
+function applyLETBPos() {
+    if(!leSelected) return;
+    const el   = leSelected;
+    const top  = parseFloat(document.getElementById('le-top').value)  || 0;
+    const left = parseFloat(document.getElementById('le-left').value) || 0;
+    el.style.top  = top.toFixed(1)  + 'mm';
+    el.style.left = left.toFixed(1) + 'mm';
+    const isLineH = el.classList.contains('line-h');
+    const isLineV = el.classList.contains('line-v');
+    if(!isLineV) {
+        const w = parseFloat(document.getElementById('le-width').value) || 0;
+        el.style.width = w.toFixed(1) + 'mm';
+    }
+    if(!isLineH) {
+        const h = parseFloat(document.getElementById('le-height').value) || 0;
+        el.style.height = h.toFixed(1) + 'mm';
+    }
+    updateLERHPos(el);
+    saveFullLayout();
+}
+
+function applyLEText() {
+    if(!leSelected) return;
+    leSelected.innerText = document.getElementById('le-text').value;
+    saveFullLayout();
+}
+
+function getFontSizePt(el) {
+    let fs = el.style.fontSize || getComputedStyle(el).fontSize || '8px';
+    const v = parseFloat(fs);
+    if(fs.endsWith('pt')) return v;
+    if(fs.endsWith('px')) return v * 72 / 96;
+    return v;
+}
+
+function changeLEFont(delta) {
+    if(!leSelected) return;
+    const el   = leSelected;
+    const next = Math.max(4, Math.min(36, getFontSizePt(el) + delta));
+    el.style.fontSize = next.toFixed(1) + 'pt';
+    document.getElementById('le-font-val').textContent = next.toFixed(1);
+    saveFullLayout();
+}
+
+function toggleLELock() {
+    if(!leSelected) return;
+    const lid = leSelected.dataset.leId;
+    if(!lid) return;
+    if(leLockedIds.has(lid)) {
+        leLockedIds.delete(lid);
+        leSelected.classList.remove('le-locked');
+        const lBtn = document.getElementById('le-lock-btn');
+        if(lBtn) { lBtn.textContent = '🔓 Zablokuj'; lBtn.style.background = '#6c757d'; }
+    } else {
+        leLockedIds.add(lid);
+        leSelected.classList.add('le-locked');
+        const lBtn = document.getElementById('le-lock-btn');
+        if(lBtn) { lBtn.textContent = '🔒 Odblokuj'; lBtn.style.background = '#dc3545'; }
+    }
+    saveFullLayout();
+}
+
+// ---- Resize handles ----
+function injectLERHs() {
+    removeLERHs();
+    const page = document.getElementById('cmr-page');
+    page.querySelectorAll('.line-h, .line-v, .cmr-input, .sig-box').forEach(el => {
         const rh = document.createElement('div');
-        rh.className = 'layout-rh';
-        updateRHPos(el, rh);
+        rh.className = 'le-rh';
+        updateLERHPos(el, rh);
         rh.addEventListener('touchstart', (e) => {
             e.stopPropagation(); e.preventDefault();
-            startLayoutDrag(e, el, 'resize');
+            selectLE(el);
+            startLEDrag(e, el, 'resize');
         }, {passive: false});
         rh.addEventListener('mousedown', (e) => {
             e.stopPropagation(); e.preventDefault();
-            startLayoutDrag(e, el, 'resize');
+            selectLE(el);
+            startLEDrag(e, el, 'resize');
         });
         page.appendChild(rh);
-        layoutRHs.push({rh, el});
+        leRHs.push({rh, el});
     });
 }
 
-function removeResizeHandles() {
-    layoutRHs.forEach(({rh}) => rh.remove());
-    layoutRHs = [];
+function removeLERHs() {
+    leRHs.forEach(({rh}) => rh.remove());
+    leRHs = [];
 }
 
-function updateRHPos(el, rh) {
+function updateLERHPos(el, rh) {
+    if(!rh) {
+        const entry = leRHs.find(r => r.el === el);
+        if(entry) rh = entry.rh; else return;
+    }
     const t = parseFloat(el.style.top)    || 0;
     const l = parseFloat(el.style.left)   || 0;
     const w = parseFloat(el.style.width)  || 20;
@@ -1594,76 +1810,142 @@ function updateRHPos(el, rh) {
     rh.style.left = (l + w - 2.5) + 'mm';
 }
 
-function startLayoutDrag(e, el, type) {
+// ---- Drag ----
+function startLEDrag(e, el, type) {
+    const lid = el.dataset.leId;
+    if(lid && leLockedIds.has(lid)) { toast('Element zablokowany', 'info', 1500); return; }
     const t = e.touches ? e.touches[0] : e;
-    layoutDrag = {
+    leDrag = {
         el, type,
         x0: t.clientX, y0: t.clientY,
         top0:    parseFloat(el.style.top)    || 0,
         left0:   parseFloat(el.style.left)   || 0,
         width0:  parseFloat(el.style.width)  || 20,
         height0: parseFloat(el.style.height) || 10,
-        scale:   getPageScale()
+        scale:   getPageScale(),
+        isLineH: el.classList.contains('line-h'),
+        isLineV: el.classList.contains('line-v')
     };
 }
 
-function onLayoutMove(e) {
-    if(!layoutDrag) return;
+function onLEMove(e) {
+    if(!leDrag || !leActive) return;
     e.preventDefault();
     const t    = e.touches ? e.touches[0] : e;
-    const toMm = 1 / (layoutDrag.scale * CSS_PX_MM);
-    const dx   = (t.clientX - layoutDrag.x0) * toMm;
-    const dy   = (t.clientY - layoutDrag.y0) * toMm;
-    const d    = layoutDrag;
+    const toMm = 1 / (leDrag.scale * CSS_PX_MM);
+    const dx   = (t.clientX - leDrag.x0) * toMm;
+    const dy   = (t.clientY - leDrag.y0) * toMm;
+    const d    = leDrag;
     if(d.type === 'move') {
         d.el.style.top  = (d.top0  + dy).toFixed(1) + 'mm';
         d.el.style.left = (d.left0 + dx).toFixed(1) + 'mm';
     } else {
-        d.el.style.width  = Math.max(5,  d.width0  + dx).toFixed(1) + 'mm';
-        d.el.style.height = Math.max(3, d.height0 + dy).toFixed(1) + 'mm';
+        if(!d.isLineV) d.el.style.width  = Math.max(5, d.width0  + dx).toFixed(1) + 'mm';
+        if(!d.isLineH) d.el.style.height = Math.max(2, d.height0 + dy).toFixed(1) + 'mm';
     }
-    const entry = layoutRHs.find(r => r.el === d.el);
-    if(entry) updateRHPos(d.el, entry.rh);
-}
-
-function onLayoutEnd() {
-    if(layoutDrag) {
-        layoutDrag = null;
-        if(layoutEditMode) saveLayout();
+    updateLERHPos(d.el);
+    if(leSelected === d.el) {
+        document.getElementById('le-top').value  = (parseFloat(d.el.style.top)  || 0).toFixed(1);
+        document.getElementById('le-left').value = (parseFloat(d.el.style.left) || 0).toFixed(1);
+        if(!d.isLineV && document.getElementById('le-width'))  document.getElementById('le-width').value  = (parseFloat(d.el.style.width)  || 0).toFixed(1);
+        if(!d.isLineH && document.getElementById('le-height')) document.getElementById('le-height').value = (parseFloat(d.el.style.height) || 0).toFixed(1);
     }
 }
 
-function initLayoutDragHandlers() {
-    document.addEventListener('touchmove',  onLayoutMove, {passive: false});
-    document.addEventListener('mousemove',  onLayoutMove);
-    document.addEventListener('touchend',   onLayoutEnd);
-    document.addEventListener('mouseup',    onLayoutEnd);
+function onLEEnd() {
+    if(leDrag) {
+        leDrag = null;
+        if(leActive) saveFullLayout();
+    }
+}
 
-    document.querySelectorAll('#cmr-page .cmr-input').forEach(el => {
-        el.addEventListener('touchstart', (e) => {
-            if(!layoutEditMode) return;
-            e.preventDefault();
-            startLayoutDrag(e, el, 'move');
-        }, {passive: false});
-        el.addEventListener('mousedown', (e) => {
-            if(!layoutEditMode) return;
-            e.preventDefault();
-            startLayoutDrag(e, el, 'move');
-        });
+// ---- Save / load / reset ----
+function saveFullLayout() {
+    const page = document.getElementById('cmr-page');
+    if(!page) return;
+    const positions = {}, fonts = {}, texts = {};
+    page.querySelectorAll('[data-le-id]').forEach(el => {
+        const id = el.dataset.leId;
+        positions[id] = {
+            top:    el.style.top    || '',
+            left:   el.style.left   || '',
+            width:  el.style.width  || '',
+            height: el.style.height || ''
+        };
+        if(el.style.fontSize) fonts[id] = el.style.fontSize;
+        if(el.classList.contains('lbl') || el.classList.contains('num')) texts[id] = el.innerText;
     });
+    localStorage.setItem('cmr_layout', JSON.stringify({positions, fonts, texts, locked: [...leLockedIds]}));
+}
 
-    document.querySelectorAll('#cmr-page .sig-box').forEach(el => {
+function loadFullLayout() {
+    const raw = localStorage.getItem('cmr_layout');
+    if(!raw) return;
+    try {
+        const {positions={}, fonts={}, texts={}, locked=[]} = JSON.parse(raw);
+        leLockedIds = new Set(locked);
+        const page = document.getElementById('cmr-page');
+        if(!page) return;
+        page.querySelectorAll('[data-le-id]').forEach(el => {
+            const id = el.dataset.leId;
+            const p  = positions[id];
+            if(p) {
+                if(p.top)    el.style.top    = p.top;
+                if(p.left)   el.style.left   = p.left;
+                if(p.width)  el.style.width  = p.width;
+                if(p.height) el.style.height = p.height;
+            }
+            if(fonts[id]) el.style.fontSize = fonts[id];
+            if(texts[id] !== undefined && (el.classList.contains('lbl') || el.classList.contains('num'))) {
+                el.innerText = texts[id];
+            }
+            if(leLockedIds.has(id)) el.classList.add('le-locked');
+        });
+    } catch(e) { console.error('Layout load error:', e); }
+}
+
+function resetFullLayout() {
+    if(!confirm('Przywrócić domyślny układ wszystkich elementów CMR?\n\nWszystkie ręczne zmiany układu, czcionek i napisów zostaną usunięte.')) return;
+    localStorage.removeItem('cmr_layout');
+    if(leActive) {
+        leActive = false;
+        const page = document.getElementById('cmr-page');
+        const bar  = document.getElementById('layout-bar');
+        const btn  = document.getElementById('layout-edit-btn');
+        if(page) page.classList.remove('le-mode');
+        if(bar)  bar.style.display = 'none';
+        if(btn)  { btn.textContent = '📐 Edytuj układ pól'; btn.style.background = ''; }
+        removeLERHs();
+    }
+    location.reload();
+}
+
+// ---- Init event handlers ----
+function initLEHandlers() {
+    document.addEventListener('touchmove', onLEMove, {passive: false});
+    document.addEventListener('mousemove', onLEMove);
+    document.addEventListener('touchend',  onLEEnd);
+    document.addEventListener('mouseup',   onLEEnd);
+
+    const page = document.getElementById('cmr-page');
+    if(!page) return;
+
+    page.querySelectorAll('.line-h, .line-v, .lbl, .num, .cmr-input, .sig-box').forEach(el => {
         el.addEventListener('touchstart', (e) => {
-            if(!layoutEditMode) return;
+            if(!leActive) return;
             if(e.target.tagName === 'BUTTON' || e.target.tagName === 'CANVAS') return;
             e.preventDefault();
-            startLayoutDrag(e, el, 'move');
+            selectLE(el);
+            const lid = el.dataset.leId;
+            if(!(lid && leLockedIds.has(lid))) startLEDrag(e, el, 'move');
         }, {passive: false});
         el.addEventListener('mousedown', (e) => {
-            if(!layoutEditMode) return;
+            if(!leActive) return;
             if(e.target.tagName === 'BUTTON' || e.target.tagName === 'CANVAS') return;
             e.preventDefault();
-            startLayoutDrag(e, el, 'move');
+            selectLE(el);
+            const lid = el.dataset.leId;
+            if(!(lid && leLockedIds.has(lid))) startLEDrag(e, el, 'move');
         });
     });
 }
