@@ -231,6 +231,35 @@
         /* No highlight mode for PDF */
         #cmr-page.no-hl .cmr-input { background: transparent !important; }
 
+        /* Carrier (field 5) styled display */
+        .carrier-display {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            overflow: hidden;
+            z-index: 5;
+            pointer-events: none;
+        }
+        .carrier-display .c-name {
+            font-size: 11pt;
+            font-weight: bold;
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.2;
+            margin-bottom: 1.5px;
+        }
+        .carrier-display .c-addr {
+            font-size: 7.5pt;
+            font-weight: normal;
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.4;
+        }
+        #inp_carrier { opacity: 0 !important; pointer-events: none !important; }
+        .le-mode #carrier-display { display: none !important; }
+        .le-mode #inp_carrier { opacity: 1 !important; pointer-events: auto !important; }
+
         /* PRINT STYLES */
         @media print {
             @page { size: A4; margin: 0; }
@@ -330,75 +359,77 @@
             <div class="line-v" style="top:15mm; left:202mm; height:275mm;"></div>
             <div class="line-h" style="top:290mm; left:8mm; width:194mm;"></div>
             <div class="line-v" style="top:15mm; left:105mm; height:107mm;"></div>
-            <!-- Left col separators: 1→4 at 47mm, 4→6 at 70mm, 6→8 at 87mm -->
-            <div class="line-h" style="top:47mm; left:8mm; width:97mm;"></div>
-            <div class="line-h" style="top:70mm; left:8mm; width:97mm;"></div>
-            <div class="line-h" style="top:87mm; left:8mm; width:97mm;"></div>
+            <!-- Grid separators: F2→F3 right-only at 38mm; full-width at 57mm, 87mm, 122mm; left-only F6→F8 at 103mm -->
+            <div class="line-h" style="top:38mm; left:105mm; width:97mm;"></div>
+            <div class="line-h" style="top:57mm; left:8mm; width:194mm;"></div>
+            <div class="line-h" style="top:87mm; left:8mm; width:194mm;"></div>
+            <div class="line-h" style="top:103mm; left:8mm; width:97mm;"></div>
             <div class="line-h" style="top:122mm; left:8mm; width:194mm;"></div>
-            <!-- Right col separators: 2→3 at 31mm, 3→5 at 47mm (matches left), 5→7 at 87mm -->
-            <div class="line-h" style="top:31mm; left:105mm; width:97mm;"></div>
-            <div class="line-h" style="top:47mm; left:105mm; width:97mm;"></div>
-            <div class="line-h" style="top:87mm; left:105mm; width:97mm;"></div>
 
-            <!-- FIELD 1: SENDER — taller to match original (~22mm usable) -->
+            <!-- FIELD 1: SENDER (15–57mm = 42mm) -->
             <div class="num" style="top:16mm; left:99mm;">1</div>
             <div class="lbl" style="top:16mm; left:9mm; width:85mm;">Sender (name, address, country)  Expéditeur (nom, adresse, pays)</div>
-            <textarea id="inp_sender" class="cmr-input" style="top:22mm; left:9mm; width:95mm; height:24mm;"></textarea>
+            <textarea id="inp_sender" class="cmr-input" style="top:19mm; left:9mm; width:95mm; height:36mm;"></textarea>
             <div class="quick-pick" style="top:17mm; left:90mm;" onclick="openPicker('sender')" title="Wybierz z bazy">📂</div>
 
-            <!-- FIELD 4: CONSIGNEE -->
-            <div class="num" style="top:48mm; left:99mm;">4</div>
-            <div class="lbl" style="top:48mm; left:9mm; width:85mm;">Consignee (name, address, country)  Destinataire (nom, adresse, pays)</div>
-            <textarea id="inp_consignee" class="cmr-input" style="top:52mm; left:9mm; width:95mm; height:17mm;"></textarea>
-            <div class="quick-pick" style="top:49mm; left:90mm;" onclick="openPicker('consignee')">📂</div>
+            <!-- FIELD 4: CONSIGNEE (57–87mm = 30mm) -->
+            <div class="num" style="top:58mm; left:99mm;">4</div>
+            <div class="lbl" style="top:58mm; left:9mm; width:85mm;">Consignee (name, address, country)  Destinataire (nom, adresse, pays)</div>
+            <textarea id="inp_consignee" class="cmr-input" style="top:61mm; left:9mm; width:95mm; height:24mm;"></textarea>
+            <div class="quick-pick" style="top:59mm; left:90mm;" onclick="openPicker('consignee')">📂</div>
 
-            <!-- FIELD 6: PLACE OF TAKING OVER (PICKUP) -->
-            <div class="num" style="top:71mm; left:99mm;">6</div>
-            <div class="lbl" style="top:71mm; left:9mm; width:85mm;">Place &amp; Date of taking over the goods (place, country, date).<br>Lieu et date de la prise en charge des marchandises (lieu, pays, date).</div>
-            <textarea id="inp_pickup" class="cmr-input" style="top:75mm; left:9mm; width:95mm; height:11mm;"></textarea>
-            <div class="quick-pick" style="top:72mm; left:90mm;" onclick="openPicker('pickup')">📂</div>
-            <div class="geo-btn" style="top:72mm; left:65mm;" onclick="getGeo('inp_pickup')" title="Pobierz lokalizację GPS">📍</div>
+            <!-- FIELD 6: PLACE OF TAKING OVER (87–103mm = 16mm) -->
+            <div class="num" style="top:88mm; left:99mm;">6</div>
+            <div class="lbl" style="top:88mm; left:9mm; width:85mm;">Place &amp; Date of taking over the goods (place, country, date).<br>Lieu et date de la prise en charge des marchandises (lieu, pays, date).</div>
+            <textarea id="inp_pickup" class="cmr-input" style="top:91mm; left:9mm; width:95mm; height:10mm;"></textarea>
+            <div class="quick-pick" style="top:89mm; left:90mm;" onclick="openPicker('pickup')">📂</div>
+            <div class="geo-btn" style="top:89mm; left:65mm;" onclick="getGeo('inp_pickup')" title="Pobierz lokalizację GPS">📍</div>
 
-            <!-- FIELD 8: DELIVERY PLACE -->
-            <div class="num" style="top:88mm; left:99mm;">8</div>
-            <div class="lbl" style="top:88mm; left:9mm; width:85mm;">Place designated for delivery of goods (place, country).<br>Lieu prévu pour la livraison des marchandises (lieu, pays).</div>
-            <textarea id="inp_destination" class="cmr-input" style="top:93mm; left:9mm; width:95mm; height:28mm;"></textarea>
-            <div class="quick-pick" style="top:89mm; left:90mm;" onclick="openPicker('destination')">📂</div>
-            <div class="geo-btn" style="top:89mm; left:65mm;" onclick="getGeo('inp_destination')">📍</div>
+            <!-- FIELD 8: DELIVERY PLACE (103–122mm = 19mm) -->
+            <div class="num" style="top:104mm; left:99mm;">8</div>
+            <div class="lbl" style="top:104mm; left:9mm; width:85mm;">Place designated for delivery of goods (place, country).<br>Lieu prévu pour la livraison des marchandises (lieu, pays).</div>
+            <textarea id="inp_destination" class="cmr-input" style="top:107mm; left:9mm; width:95mm; height:13mm;"></textarea>
+            <div class="quick-pick" style="top:105mm; left:90mm;" onclick="openPicker('destination')">📂</div>
+            <div class="geo-btn" style="top:105mm; left:65mm;" onclick="getGeo('inp_destination')">📍</div>
 
-            <!-- FIELD 2 -->
+            <!-- FIELD 2 (15–38mm = 23mm) -->
             <div class="num" style="top:16mm; left:196mm;">2</div>
             <div class="lbl" style="top:16mm; left:106mm; width:90mm;">Customs Reference/Status.  Référence/designation pour mise en douane</div>
-            <input id="inp_f2" class="cmr-input" style="top:21mm; left:106mm; width:95mm; height:8mm;">
+            <input id="inp_f2" class="cmr-input" style="top:19mm; left:106mm; width:95mm; height:17mm;">
 
-            <!-- FIELD 3 -->
-            <div class="num" style="top:32mm; left:196mm;">3</div>
-            <div class="lbl" style="top:32mm; left:106mm; width:90mm;">Senders/Agent's Reference.  Référence de l'expéditeur/de l'agent.</div>
-            <input id="inp_f3" class="cmr-input" style="top:36mm; left:106mm; width:95mm; height:9mm;">
+            <!-- FIELD 3 (38–57mm = 19mm) -->
+            <div class="num" style="top:39mm; left:196mm;">3</div>
+            <div class="lbl" style="top:39mm; left:106mm; width:90mm;">Senders/Agent's Reference.  Référence de l'expéditeur/de l'agent.</div>
+            <input id="inp_f3" class="cmr-input" style="top:42mm; left:106mm; width:95mm; height:13mm;">
 
-            <!-- FIELD 5: CARRIER — taller to hold full address block -->
-            <div class="num" style="top:48mm; left:196mm;">5</div>
-            <div class="lbl" style="top:48mm; left:106mm; width:85mm;">Carrier (Name, Address, Country).  Transporteur (Nom, Adresse, Pays).</div>
-            <textarea id="inp_carrier" class="cmr-input" style="top:52mm; left:106mm; width:95mm; height:34mm; text-align:center; font-weight:bold; font-size:10pt;">NOLAN TRANSPORT HOLDINGS LIMITED
-Oaklands, New Ross, Co. Wexford Y34 X335
-Ireland
-Tel: +353 51 421965  |  sales@nolantransport.com</textarea>
+            <!-- FIELD 5: CARRIER (57–87mm = 30mm) — styled display overlay + hidden textarea -->
+            <div class="num" style="top:58mm; left:196mm;">5</div>
+            <div class="lbl" style="top:58mm; left:106mm; width:85mm;">Carrier (Name, Address, Country).  Transporteur (Nom, Adresse, Pays).</div>
+            <div id="carrier-display" class="carrier-display" style="top:62mm; left:106mm; width:95mm; height:23mm;">
+                <div class="c-name" id="carrier-name-el">NOLAN TRANSPORT HOLDINGS LIMITED</div>
+                <div class="c-addr" id="carrier-addr-el"></div>
+            </div>
+            <textarea id="inp_carrier" class="cmr-input" style="top:62mm; left:106mm; width:95mm; height:23mm; text-align:center; font-size:8pt;">NOLAN TRANSPORT HOLDINGS LIMITED
+Oaklands, New Ross, Co. Wexford Y34 X335, Ireland
+Tel: +353 51 421965
+Email: sales@nolantransport.com
+www.nolantransport.com</textarea>
 
-            <!-- FIELD 7 -->
+            <!-- FIELD 7 (87–103mm = 16mm) -->
             <div class="num" style="top:88mm; left:196mm;">7</div>
             <div class="lbl" style="top:88mm; left:106mm; width:95mm;">Successive carriers.  Transporteurs successifs.</div>
-            <textarea id="inp_f7" class="cmr-input" style="top:92mm; left:106mm; width:95mm; height:10mm;"></textarea>
+            <textarea id="inp_f7" class="cmr-input" style="top:91mm; left:106mm; width:95mm; height:10mm;"></textarea>
 
-            <!-- TRACTOR / TRAILER -->
-            <div class="lbl lbl-bold" style="top:103mm; left:106mm;">TRACTOR / TRACTEUR NR :</div>
-            <input id="inp_tractor" class="cmr-input" style="top:102mm; left:143mm; width:57mm; height:5mm;">
-            <div class="quick-pick" style="top:101mm; left:196mm;" onclick="openPicker('tractor')">🚛</div>
+            <!-- TRACTOR / TRAILER (103–122mm = 19mm) -->
+            <div class="lbl lbl-bold" style="top:104mm; left:106mm;">TRACTOR / TRACTEUR NR :</div>
+            <input id="inp_tractor" class="cmr-input" style="top:103mm; left:143mm; width:57mm; height:5mm;">
+            <div class="quick-pick" style="top:102mm; left:196mm;" onclick="openPicker('tractor')">🚛</div>
 
-            <div class="lbl lbl-bold" style="top:109mm; left:106mm;">TRAILER / REMORQUE NR :</div>
-            <input id="inp_trailer" class="cmr-input" style="top:108mm; left:143mm; width:57mm; height:5mm;">
-            <div class="quick-pick" style="top:107mm; left:196mm;" onclick="openPicker('trailer')">🚛</div>
+            <div class="lbl lbl-bold" style="top:110mm; left:106mm;">TRAILER / REMORQUE NR :</div>
+            <input id="inp_trailer" class="cmr-input" style="top:109mm; left:143mm; width:57mm; height:5mm;">
+            <div class="quick-pick" style="top:108mm; left:196mm;" onclick="openPicker('trailer')">🚛</div>
 
-            <div class="lbl" style="top:114mm; left:106mm; width:95mm; font-size:4.5pt; text-align:justify; line-height:1.15;">This carriage is subject, notwithstanding any clause to the contrary, to the convention on the contract for the International Carriage of Goods by Road (CMR).<br>Ce transport est soumis, nonobstant toute clause contraire, à la convention relative au contrat de transport international de marchandises par route (CMR).</div>
+            <div class="lbl" style="top:115mm; left:106mm; width:95mm; font-size:4.5pt; text-align:justify; line-height:1.15;">This carriage is subject, notwithstanding any clause to the contrary, to the convention on the contract for the International Carriage of Goods by Road (CMR).<br>Ce transport est soumis, nonobstant toute clause contraire, à la convention relative au contrat de transport international de marchandises par route (CMR).</div>
 
             <!-- GOODS TABLE -->
             <div class="num" style="top:123mm; left:148mm;">9</div>
@@ -726,6 +757,7 @@ window.addEventListener('load', () => {
 
     loadFullLayout();
     loadDraft();
+    updateCarrierDisplay();
     loadHistoryList();
 
     // Auto-save on any CMR input change
@@ -1185,6 +1217,7 @@ function updateCMRFromProfile(d) {
     if(d.c) carrierText += d.c;
     const carrierEl = document.getElementById('inp_carrier');
     if(carrierText && carrierEl) carrierEl.value = carrierText;
+    updateCarrierDisplay();
     if(d.tr)  { const el = document.getElementById('inp_tractor'); if(el) el.value = d.tr; }
     if(d.trl) { const el = document.getElementById('inp_trailer'); if(el) el.value = d.trl; }
 }
@@ -1519,6 +1552,23 @@ function newCMR() {
 }
 
 // ============================================================
+// CARRIER DISPLAY
+// ============================================================
+function updateCarrierDisplay() {
+    const ta     = document.getElementById('inp_carrier');
+    const nameEl = document.getElementById('carrier-name-el');
+    const addrEl = document.getElementById('carrier-addr-el');
+    if(!ta || !nameEl || !addrEl) return;
+    const lines = ta.value.split('\n').map(l => l.trim()).filter(l => l);
+    nameEl.textContent = lines[0] || '';
+    addrEl.textContent = '';
+    lines.slice(1).forEach((line, i) => {
+        if(i > 0) addrEl.appendChild(document.createElement('br'));
+        addrEl.appendChild(document.createTextNode(line));
+    });
+}
+
+// ============================================================
 // ADVANCED LAYOUT EDITOR
 // ============================================================
 const CSS_PX_MM  = 96 / 25.4;
@@ -1615,6 +1665,7 @@ function deactivateLEMode() {
     if(btn) { btn.textContent = '📐 Edytuj układ pól'; btn.style.background = ''; }
     removeLERHs();
     saveFullLayout();
+    updateCarrierDisplay();
     toast('Układ zapisany!', 'success');
 }
 
