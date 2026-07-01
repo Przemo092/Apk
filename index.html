@@ -671,9 +671,11 @@ www.nolantransport.com</textarea>
         <span id="le-font-val" style="font-size:13px;font-weight:bold;min-width:36px;text-align:center;"></span>
         <span style="font-size:11px;color:#888;">pt</span>
         <button class="le-sm-btn" onclick="changeLEFont(+0.5)">+</button>
+        <button class="le-sm-btn" id="le-bold-btn" style="font-weight:900; margin-left:6px;" onclick="toggleLEBold()">B</button>
+        <button class="le-sm-btn" id="le-italic-btn" style="font-style:italic; font-family:serif;" onclick="toggleLEItalic()">I</button>
     </div>
     <div id="le-text-row" style="display:none;">
-        <div style="font-size:9px;color:#888;margin-bottom:3px;">Tekst napisu:</div>
+        <div style="font-size:9px;color:#888;margin-bottom:3px;">Tekst:</div>
         <textarea id="le-text" rows="2" oninput="applyLEText()" style="width:100%;font-size:12px;border:1px solid #ddd;border-radius:6px;padding:5px;box-sizing:border-box;resize:vertical;"></textarea>
     </div>
 </div>
@@ -758,6 +760,8 @@ window.addEventListener('load', () => {
     loadFullLayout();
     loadDraft();
     updateCarrierDisplay();
+    const carrierTA = document.getElementById('inp_carrier');
+    if(carrierTA) carrierTA.addEventListener('input', updateCarrierDisplay);
     loadHistoryList();
 
     // Auto-save on any CMR input change
@@ -1075,6 +1079,7 @@ function restoreHistory(id) {
         }
     });
 
+    updateCarrierDisplay();
     scheduleDraftSave();
     nav('cmr', document.querySelector('.nav-item'));
     toast('✅ Trasa załadowana!', 'success');
@@ -1511,6 +1516,9 @@ function loadDraft() {
         const data = JSON.parse(raw);
         if(data.fields) {
             Object.entries(data.fields).forEach(([id, val]) => {
+                // Never blank the carrier field from a stale draft — it holds
+                // the permanent Nolan Transport data
+                if(id === 'inp_carrier' && !String(val).trim()) return;
                 const el = document.getElementById(id);
                 if(el) el.value = val;
             });
@@ -1545,6 +1553,7 @@ function newCMR() {
     clearSig('sig1');
     clearSig('sig2');
     clearValidation();
+    updateCarrierDisplay();
     localStorage.removeItem('cmr_draft');
     const status = document.getElementById('draft-status');
     if(status) status.textContent = '';
@@ -1554,11 +1563,29 @@ function newCMR() {
 // ============================================================
 // CARRIER DISPLAY
 // ============================================================
+const DEFAULT_CARRIER = 'NOLAN TRANSPORT HOLDINGS LIMITED\nOaklands, New Ross, Co. Wexford Y34 X335, Ireland\nTel: +353 51 421965\nEmail: sales@nolantransport.com\nwww.nolantransport.com';
+
 function updateCarrierDisplay() {
     const ta     = document.getElementById('inp_carrier');
+    const disp   = document.getElementById('carrier-display');
     const nameEl = document.getElementById('carrier-name-el');
     const addrEl = document.getElementById('carrier-addr-el');
-    if(!ta || !nameEl || !addrEl) return;
+    if(!ta || !disp || !nameEl || !addrEl) return;
+    // Restore the permanent Nolan data if the field is empty — but not while
+    // the user is actively typing in it (advanced editor mode)
+    if(!ta.value.trim() && document.activeElement !== ta) ta.value = DEFAULT_CARRIER;
+    // Display mirrors the textarea's geometry and font styling, so editor
+    // changes made to the textarea carry over to the printed layout
+    if(ta.style.top)    disp.style.top    = ta.style.top;
+    if(ta.style.left)   disp.style.left   = ta.style.left;
+    if(ta.style.width)  disp.style.width  = ta.style.width;
+    if(ta.style.height) disp.style.height = ta.style.height;
+    if(ta.style.fontStyle) disp.style.fontStyle = ta.style.fontStyle;
+    if(ta.style.fontSize) {
+        const pt = parseFloat(ta.style.fontSize) || 8;
+        addrEl.style.fontSize = pt.toFixed(1) + 'pt';
+        nameEl.style.fontSize = (pt + 3).toFixed(1) + 'pt';
+    }
     const lines = ta.value.split('\n').map(l => l.trim()).filter(l => l);
     nameEl.textContent = lines[0] || '';
     addrEl.textContent = '';
@@ -1741,14 +1768,18 @@ function showLETB(el) {
     const fontRow = document.getElementById('le-font-row');
     if(fontRow) {
         fontRow.style.display = hasFont ? 'flex' : 'none';
-        if(hasFont) document.getElementById('le-font-val').textContent = getFontSizePt(el).toFixed(1);
+        if(hasFont) {
+            document.getElementById('le-font-val').textContent = getFontSizePt(el).toFixed(1);
+            updateLEStyleBtns(el);
+        }
     }
 
-    const hasText = el.classList.contains('lbl') || el.classList.contains('num');
+    const isInput = el.classList.contains('cmr-input');
+    const hasText = el.classList.contains('lbl') || el.classList.contains('num') || isInput;
     const textRow = document.getElementById('le-text-row');
     if(textRow) {
         textRow.style.display = hasText ? 'block' : 'none';
-        if(hasText) document.getElementById('le-text').value = el.innerText;
+        if(hasText) document.getElementById('le-text').value = isInput ? el.value : el.innerText;
     }
 }
 
@@ -1781,8 +1812,15 @@ function applyLETBPos() {
 
 function applyLEText() {
     if(!leSelected) return;
-    leSelected.innerText = document.getElementById('le-text').value;
-    saveFullLayout();
+    const txt = document.getElementById('le-text').value;
+    if(leSelected.classList.contains('cmr-input')) {
+        leSelected.value = txt;
+        if(leSelected.id === 'inp_carrier') updateCarrierDisplay();
+        if(typeof scheduleDraftSave === 'function') scheduleDraftSave();
+    } else {
+        leSelected.innerText = txt;
+        saveFullLayout();
+    }
 }
 
 function getFontSizePt(el) {
@@ -1800,6 +1838,30 @@ function changeLEFont(delta) {
     el.style.fontSize = next.toFixed(1) + 'pt';
     document.getElementById('le-font-val').textContent = next.toFixed(1);
     saveFullLayout();
+}
+
+function toggleLEBold() {
+    if(!leSelected) return;
+    const isBold = parseInt(getComputedStyle(leSelected).fontWeight) >= 600;
+    leSelected.style.fontWeight = isBold ? 'normal' : 'bold';
+    updateLEStyleBtns(leSelected);
+    saveFullLayout();
+}
+
+function toggleLEItalic() {
+    if(!leSelected) return;
+    const isItalic = getComputedStyle(leSelected).fontStyle === 'italic';
+    leSelected.style.fontStyle = isItalic ? 'normal' : 'italic';
+    updateLEStyleBtns(leSelected);
+    saveFullLayout();
+}
+
+function updateLEStyleBtns(el) {
+    const cs = getComputedStyle(el);
+    const bb = document.getElementById('le-bold-btn');
+    const ib = document.getElementById('le-italic-btn');
+    if(bb) bb.style.background = parseInt(cs.fontWeight) >= 600 ? '#0056b3' : '#6c757d';
+    if(ib) ib.style.background = cs.fontStyle === 'italic'      ? '#0056b3' : '#6c757d';
 }
 
 function toggleLELock() {
@@ -1824,7 +1886,7 @@ function toggleLELock() {
 function injectLERHs() {
     removeLERHs();
     const page = document.getElementById('cmr-page');
-    page.querySelectorAll('.line-h, .line-v, .cmr-input, .sig-box').forEach(el => {
+    page.querySelectorAll('.line-h, .line-v, .lbl, .cmr-input, .sig-box').forEach(el => {
         const rh = document.createElement('div');
         rh.className = 'le-rh';
         updateLERHPos(el, rh);
@@ -1911,10 +1973,14 @@ function onLEEnd() {
 }
 
 // ---- Save / load / reset ----
+// Bump when CMR element structure changes — old saved layouts map le-ids
+// to different elements and would scramble the form.
+const LE_LAYOUT_VER = 2;
+
 function saveFullLayout() {
     const page = document.getElementById('cmr-page');
     if(!page) return;
-    const positions = {}, fonts = {}, texts = {};
+    const positions = {}, fonts = {}, weights = {}, italics = {}, texts = {};
     page.querySelectorAll('[data-le-id]').forEach(el => {
         const id = el.dataset.leId;
         positions[id] = {
@@ -1923,17 +1989,24 @@ function saveFullLayout() {
             width:  el.style.width  || '',
             height: el.style.height || ''
         };
-        if(el.style.fontSize) fonts[id] = el.style.fontSize;
+        if(el.style.fontSize)   fonts[id]   = el.style.fontSize;
+        if(el.style.fontWeight) weights[id] = el.style.fontWeight;
+        if(el.style.fontStyle)  italics[id] = el.style.fontStyle;
         if(el.classList.contains('lbl') || el.classList.contains('num')) texts[id] = el.innerText;
     });
-    localStorage.setItem('cmr_layout', JSON.stringify({positions, fonts, texts, locked: [...leLockedIds]}));
+    localStorage.setItem('cmr_layout', JSON.stringify({ver: LE_LAYOUT_VER, positions, fonts, weights, italics, texts, locked: [...leLockedIds]}));
 }
 
 function loadFullLayout() {
     const raw = localStorage.getItem('cmr_layout');
     if(!raw) return;
     try {
-        const {positions={}, fonts={}, texts={}, locked=[]} = JSON.parse(raw);
+        const data = JSON.parse(raw);
+        if(data.ver !== LE_LAYOUT_VER) {
+            localStorage.removeItem('cmr_layout');
+            return;
+        }
+        const {positions={}, fonts={}, weights={}, italics={}, texts={}, locked=[]} = data;
         leLockedIds = new Set(locked);
         const page = document.getElementById('cmr-page');
         if(!page) return;
@@ -1946,7 +2019,9 @@ function loadFullLayout() {
                 if(p.width)  el.style.width  = p.width;
                 if(p.height) el.style.height = p.height;
             }
-            if(fonts[id]) el.style.fontSize = fonts[id];
+            if(fonts[id])   el.style.fontSize   = fonts[id];
+            if(weights[id]) el.style.fontWeight = weights[id];
+            if(italics[id]) el.style.fontStyle  = italics[id];
             if(texts[id] !== undefined && (el.classList.contains('lbl') || el.classList.contains('num'))) {
                 el.innerText = texts[id];
             }
