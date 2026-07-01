@@ -92,8 +92,8 @@
             border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px;
             font-weight: bold; cursor: pointer; color: white;
         }
-        #sig-overlay-wrap { flex: 1; position: relative; background: #f8f8f8; }
-        #overlay-sig-canvas { width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+        #sig-overlay-wrap { flex: 1; position: relative; background: #ccd4de; overflow: hidden; }
+        #overlay-sig-canvas { position: absolute; display: block; cursor: crosshair; touch-action: none; background: white; box-shadow: 0 4px 24px rgba(0,0,0,0.22); border-radius: 6px; }
         #sig-overlay-hint {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
             color: #ccc; font-size: 15px; pointer-events: none; user-select: none; white-space: nowrap;
@@ -297,42 +297,42 @@
             <div class="line-v" style="top:15mm; left:8mm; height:275mm;"></div>
             <div class="line-v" style="top:15mm; left:202mm; height:275mm;"></div>
             <div class="line-h" style="top:290mm; left:8mm; width:194mm;"></div>
-            <div class="line-v" style="top:15mm; left:105mm; height:105mm;"></div>
-            <!-- Left col separators: 1→4 at 44mm, 4→6 at 66mm, 6→8 at 86mm -->
-            <div class="line-h" style="top:44mm; left:8mm; width:97mm;"></div>
-            <div class="line-h" style="top:66mm; left:8mm; width:97mm;"></div>
-            <div class="line-h" style="top:86mm; left:8mm; width:97mm;"></div>
-            <div class="line-h" style="top:120mm; left:8mm; width:194mm;"></div>
-            <!-- Right col separators: 2→3 at 30mm, 3→5 at 44mm (matches left), 5→7 at 86mm -->
-            <div class="line-h" style="top:30mm; left:105mm; width:97mm;"></div>
-            <div class="line-h" style="top:44mm; left:105mm; width:97mm;"></div>
-            <div class="line-h" style="top:86mm; left:105mm; width:97mm;"></div>
+            <div class="line-v" style="top:15mm; left:105mm; height:107mm;"></div>
+            <!-- Left col separators: 1→4 at 47mm, 4→6 at 70mm, 6→8 at 87mm -->
+            <div class="line-h" style="top:47mm; left:8mm; width:97mm;"></div>
+            <div class="line-h" style="top:70mm; left:8mm; width:97mm;"></div>
+            <div class="line-h" style="top:87mm; left:8mm; width:97mm;"></div>
+            <div class="line-h" style="top:122mm; left:8mm; width:194mm;"></div>
+            <!-- Right col separators: 2→3 at 31mm, 3→5 at 47mm (matches left), 5→7 at 87mm -->
+            <div class="line-h" style="top:31mm; left:105mm; width:97mm;"></div>
+            <div class="line-h" style="top:47mm; left:105mm; width:97mm;"></div>
+            <div class="line-h" style="top:87mm; left:105mm; width:97mm;"></div>
 
             <!-- FIELD 1: SENDER — taller to match original (~22mm usable) -->
             <div class="num" style="top:16mm; left:99mm;">1</div>
             <div class="lbl" style="top:16mm; left:9mm; width:85mm;">Sender (name, address, country)  Expéditeur (nom, adresse, pays)</div>
-            <textarea id="inp_sender" class="cmr-input" style="top:22mm; left:9mm; width:95mm; height:21mm;"></textarea>
+            <textarea id="inp_sender" class="cmr-input" style="top:22mm; left:9mm; width:95mm; height:24mm;"></textarea>
             <div class="quick-pick" style="top:17mm; left:90mm;" onclick="openPicker('sender')" title="Wybierz z bazy">📂</div>
 
             <!-- FIELD 4: CONSIGNEE -->
-            <div class="num" style="top:45mm; left:99mm;">4</div>
-            <div class="lbl" style="top:45mm; left:9mm; width:85mm;">Consignee (name, address, country)  Destinataire (nom, adresse, pays)</div>
-            <textarea id="inp_consignee" class="cmr-input" style="top:50mm; left:9mm; width:95mm; height:15mm;"></textarea>
-            <div class="quick-pick" style="top:46mm; left:90mm;" onclick="openPicker('consignee')">📂</div>
+            <div class="num" style="top:48mm; left:99mm;">4</div>
+            <div class="lbl" style="top:48mm; left:9mm; width:85mm;">Consignee (name, address, country)  Destinataire (nom, adresse, pays)</div>
+            <textarea id="inp_consignee" class="cmr-input" style="top:52mm; left:9mm; width:95mm; height:17mm;"></textarea>
+            <div class="quick-pick" style="top:49mm; left:90mm;" onclick="openPicker('consignee')">📂</div>
 
             <!-- FIELD 6: PLACE OF TAKING OVER (PICKUP) -->
-            <div class="num" style="top:67mm; left:99mm;">6</div>
-            <div class="lbl" style="top:67mm; left:9mm; width:85mm;">Place &amp; Date of taking over the goods (place, country, date).<br>Lieu et date de la prise en charge des marchandises (lieu, pays, date).</div>
-            <textarea id="inp_pickup" class="cmr-input" style="top:73mm; left:9mm; width:95mm; height:11mm;"></textarea>
-            <div class="quick-pick" style="top:68mm; left:90mm;" onclick="openPicker('pickup')">📂</div>
-            <div class="geo-btn" style="top:68mm; left:65mm;" onclick="getGeo('inp_pickup')" title="Pobierz lokalizację GPS">📍</div>
+            <div class="num" style="top:71mm; left:99mm;">6</div>
+            <div class="lbl" style="top:71mm; left:9mm; width:85mm;">Place &amp; Date of taking over the goods (place, country, date).<br>Lieu et date de la prise en charge des marchandises (lieu, pays, date).</div>
+            <textarea id="inp_pickup" class="cmr-input" style="top:75mm; left:9mm; width:95mm; height:11mm;"></textarea>
+            <div class="quick-pick" style="top:72mm; left:90mm;" onclick="openPicker('pickup')">📂</div>
+            <div class="geo-btn" style="top:72mm; left:65mm;" onclick="getGeo('inp_pickup')" title="Pobierz lokalizację GPS">📍</div>
 
             <!-- FIELD 8: DELIVERY PLACE -->
-            <div class="num" style="top:87mm; left:99mm;">8</div>
-            <div class="lbl" style="top:87mm; left:9mm; width:85mm;">Place designated for delivery of goods (place, country).<br>Lieu prévu pour la livraison des marchandises (lieu, pays).</div>
-            <textarea id="inp_destination" class="cmr-input" style="top:93mm; left:9mm; width:95mm; height:26mm;"></textarea>
-            <div class="quick-pick" style="top:88mm; left:90mm;" onclick="openPicker('destination')">📂</div>
-            <div class="geo-btn" style="top:88mm; left:65mm;" onclick="getGeo('inp_destination')">📍</div>
+            <div class="num" style="top:88mm; left:99mm;">8</div>
+            <div class="lbl" style="top:88mm; left:9mm; width:85mm;">Place designated for delivery of goods (place, country).<br>Lieu prévu pour la livraison des marchandises (lieu, pays).</div>
+            <textarea id="inp_destination" class="cmr-input" style="top:93mm; left:9mm; width:95mm; height:28mm;"></textarea>
+            <div class="quick-pick" style="top:89mm; left:90mm;" onclick="openPicker('destination')">📂</div>
+            <div class="geo-btn" style="top:89mm; left:65mm;" onclick="getGeo('inp_destination')">📍</div>
 
             <!-- FIELD 2 -->
             <div class="num" style="top:16mm; left:196mm;">2</div>
@@ -340,19 +340,22 @@
             <input id="inp_f2" class="cmr-input" style="top:21mm; left:106mm; width:95mm; height:8mm;">
 
             <!-- FIELD 3 -->
-            <div class="num" style="top:31mm; left:196mm;">3</div>
-            <div class="lbl" style="top:31mm; left:106mm; width:90mm;">Senders/Agent's Reference.  Référence de l'expéditeur/de l'agent.</div>
-            <input id="inp_f3" class="cmr-input" style="top:35mm; left:106mm; width:95mm; height:8mm;">
+            <div class="num" style="top:32mm; left:196mm;">3</div>
+            <div class="lbl" style="top:32mm; left:106mm; width:90mm;">Senders/Agent's Reference.  Référence de l'expéditeur/de l'agent.</div>
+            <input id="inp_f3" class="cmr-input" style="top:36mm; left:106mm; width:95mm; height:9mm;">
 
             <!-- FIELD 5: CARRIER — taller to hold full address block -->
-            <div class="num" style="top:45mm; left:196mm;">5</div>
-            <div class="lbl" style="top:45mm; left:106mm; width:85mm;">Carrier (Name, Address, Country).  Transporteur (Nom, Adresse, Pays).</div>
-            <textarea id="inp_carrier" class="cmr-input" style="top:50mm; left:106mm; width:95mm; height:35mm; text-align:center; font-weight:bold; font-size:10pt;"></textarea>
+            <div class="num" style="top:48mm; left:196mm;">5</div>
+            <div class="lbl" style="top:48mm; left:106mm; width:85mm;">Carrier (Name, Address, Country).  Transporteur (Nom, Adresse, Pays).</div>
+            <textarea id="inp_carrier" class="cmr-input" style="top:52mm; left:106mm; width:95mm; height:34mm; text-align:center; font-weight:bold; font-size:10pt;">NOLAN TRANSPORT HOLDINGS LIMITED
+Oaklands, New Ross, Co. Wexford Y34 X335
+Ireland
+Tel: +353 51 421965  |  sales@nolantransport.com</textarea>
 
             <!-- FIELD 7 -->
-            <div class="num" style="top:87mm; left:196mm;">7</div>
-            <div class="lbl" style="top:87mm; left:106mm; width:95mm;">Successive carriers.  Transporteurs successifs.</div>
-            <textarea id="inp_f7" class="cmr-input" style="top:91mm; left:106mm; width:95mm; height:10mm;"></textarea>
+            <div class="num" style="top:88mm; left:196mm;">7</div>
+            <div class="lbl" style="top:88mm; left:106mm; width:95mm;">Successive carriers.  Transporteurs successifs.</div>
+            <textarea id="inp_f7" class="cmr-input" style="top:92mm; left:106mm; width:95mm; height:10mm;"></textarea>
 
             <!-- TRACTOR / TRAILER -->
             <div class="lbl lbl-bold" style="top:103mm; left:106mm;">TRACTOR / TRACTEUR NR :</div>
@@ -366,19 +369,19 @@
             <div class="lbl" style="top:114mm; left:106mm; width:95mm; font-size:4.5pt; text-align:justify; line-height:1.15;">This carriage is subject, notwithstanding any clause to the contrary, to the convention on the contract for the International Carriage of Goods by Road (CMR).<br>Ce transport est soumis, nonobstant toute clause contraire, à la convention relative au contrat de transport international de marchandises par route (CMR).</div>
 
             <!-- GOODS TABLE -->
-            <div class="num" style="top:121mm; left:148mm;">9</div>
-            <div class="line-v" style="top:120mm; left:155mm; height:95mm;"></div>
-            <div class="line-v" style="top:120mm; left:178mm; height:95mm;"></div>
-            <div class="lbl" style="top:121mm; left:9mm; width:140mm;">Marks &amp; No; Kind of Packages; Description of Goods*.<br>Marques &amp; No; No.et nature des colis; désignation des marchandises*.</div>
+            <div class="num" style="top:123mm; left:148mm;">9</div>
+            <div class="line-v" style="top:122mm; left:155mm; height:93mm;"></div>
+            <div class="line-v" style="top:122mm; left:178mm; height:93mm;"></div>
+            <div class="lbl" style="top:123mm; left:9mm; width:140mm;">Marks &amp; No; Kind of Packages; Description of Goods*.<br>Marques &amp; No; No.et nature des colis; désignation des marchandises*.</div>
 
-            <div class="num" style="top:121mm; left:172mm;">10</div>
-            <div class="lbl" style="top:121mm; left:156mm;">Gross weight in kg<br>Poids brut, kg</div>
-            <div class="num" style="top:121mm; left:196mm;">11</div>
-            <div class="lbl" style="top:121mm; left:179mm;">Volume in m³<br>Cubage m³</div>
+            <div class="num" style="top:123mm; left:172mm;">10</div>
+            <div class="lbl" style="top:123mm; left:156mm;">Gross weight in kg<br>Poids brut, kg</div>
+            <div class="num" style="top:123mm; left:196mm;">11</div>
+            <div class="lbl" style="top:123mm; left:179mm;">Volume in m³<br>Cubage m³</div>
 
-            <textarea id="inp_goods" class="cmr-input" style="top:127mm; left:9mm; width:145mm; height:68mm;"></textarea>
-            <textarea id="inp_weight" class="cmr-input" style="top:127mm; left:156mm; width:21mm; height:68mm; text-align:center;"></textarea>
-            <textarea id="inp_vol" class="cmr-input" style="top:127mm; left:179mm; width:22mm; height:68mm; text-align:center;"></textarea>
+            <textarea id="inp_goods" class="cmr-input" style="top:129mm; left:9mm; width:145mm; height:66mm;"></textarea>
+            <textarea id="inp_weight" class="cmr-input" style="top:129mm; left:156mm; width:21mm; height:66mm; text-align:center;"></textarea>
+            <textarea id="inp_vol" class="cmr-input" style="top:129mm; left:179mm; width:22mm; height:66mm; text-align:center;"></textarea>
 
             <!-- PALLETS -->
             <div class="line-h" style="top:195mm; left:8mm; width:147mm;"></div>
@@ -1270,15 +1273,43 @@ function setupOverlaySigPad() {
 function openOverlaySig(targetId, label) {
     overlaySigTarget = targetId;
     document.getElementById('sig-overlay-title').textContent = label || 'Podpis';
-    const overlay = document.getElementById('sig-overlay');
-    overlay.classList.add('open');
+    document.getElementById('sig-overlay').classList.add('open');
 
-    // Resize overlay canvas to full screen
-    const canvas = overlaySigPad.canvas;
-    const wrap = document.getElementById('sig-overlay-wrap');
-    canvas.width  = wrap.offsetWidth  * (window.devicePixelRatio || 1);
-    canvas.height = wrap.offsetHeight * (window.devicePixelRatio || 1);
-    overlaySigPad.ctx.clearRect(0, 0, canvas.width, canvas.height);
+    requestAnimationFrame(() => {
+        const canvas = overlaySigPad.canvas;
+        const wrap = document.getElementById('sig-overlay-wrap');
+
+        // Compute destination aspect ratio so canvas matches where sig will be pasted
+        const destPad = (targetId !== 'profile-sig-canvas') ? sigPads[targetId] : null;
+        let destAspect = 4.0;
+        if(destPad) {
+            resizeSigCanvas(destPad);
+            if(destPad.canvas.width > 0 && destPad.canvas.height > 0)
+                destAspect = destPad.canvas.width / destPad.canvas.height;
+        }
+
+        const PAD = 24;
+        const availW = wrap.clientWidth  - PAD * 2;
+        const availH = wrap.clientHeight - PAD * 2;
+
+        let boxW = availW;
+        let boxH = boxW / destAspect;
+        if(boxH < 90) { boxH = 90; boxW = boxH * destAspect; }
+        if(boxW > availW) { boxW = availW; boxH = boxW / destAspect; }
+        if(boxH > availH) { boxH = availH; boxW = boxH * destAspect; }
+
+        const left = Math.round((wrap.clientWidth  - boxW) / 2);
+        const top  = Math.round((wrap.clientHeight - boxH) / 2);
+        const DPR  = window.devicePixelRatio || 1;
+
+        canvas.style.width  = boxW + 'px';
+        canvas.style.height = boxH + 'px';
+        canvas.style.left   = left + 'px';
+        canvas.style.top    = top  + 'px';
+        canvas.width  = Math.round(boxW * DPR);
+        canvas.height = Math.round(boxH * DPR);
+        overlaySigPad.ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
 }
 
 function closeOverlaySig() {
@@ -1294,13 +1325,21 @@ function clearOverlaySig() {
 function confirmOverlaySig() {
     if(!overlaySigTarget) { closeOverlaySig(); return; }
 
-    // Handle profile sig canvas separately
+    const src = overlaySigPad.canvas;
+
+    function containCopy(dstPad) {
+        resizeSigCanvas(dstPad);
+        const dst = dstPad.canvas;
+        dstPad.ctx.clearRect(0, 0, dst.width, dst.height);
+        const scale = Math.min(dst.width / src.width, dst.height / src.height);
+        const dw = src.width * scale, dh = src.height * scale;
+        dstPad.ctx.drawImage(src, (dst.width - dw) / 2, (dst.height - dh) / 2, dw, dh);
+    }
+
     if(overlaySigTarget === 'profile-sig-canvas') {
         const profPad = sigPads['profile-sig-canvas'];
         if(!profPad) { closeOverlaySig(); return; }
-        resizeSigCanvas(profPad);
-        profPad.ctx.clearRect(0, 0, profPad.canvas.width, profPad.canvas.height);
-        profPad.ctx.drawImage(overlaySigPad.canvas, 0, 0, profPad.canvas.width, profPad.canvas.height);
+        containCopy(profPad);
         closeOverlaySig();
         toast('Podpis zatwierdzony — kliknij Zapisz!', 'info');
         return;
@@ -1308,9 +1347,7 @@ function confirmOverlaySig() {
 
     const destPad = sigPads[overlaySigTarget];
     if(!destPad) { closeOverlaySig(); return; }
-    resizeSigCanvas(destPad);
-    destPad.ctx.clearRect(0, 0, destPad.canvas.width, destPad.canvas.height);
-    destPad.ctx.drawImage(overlaySigPad.canvas, 0, 0, destPad.canvas.width, destPad.canvas.height);
+    containCopy(destPad);
     scheduleDraftSave();
     closeOverlaySig();
     toast('Podpis zatwierdzony!', 'success');
