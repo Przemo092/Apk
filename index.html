@@ -30,33 +30,67 @@
         /* SPLASH */
         #splash-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #ffffff; z-index: 9999;
+            background: linear-gradient(160deg, #0a1a2f 0%, #103a67 55%, #0a5fa8 100%);
+            background-size: 200% 200%;
+            animation: splashBg 5s ease infinite;
+            z-index: 9999; overflow: hidden;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             transition: opacity 0.5s ease-out;
         }
+        @keyframes splashBg { 0%,100% { background-position: 0% 0%; } 50% { background-position: 100% 100%; } }
+        #splash-screen::before {
+            content: ''; position: absolute; width: 440px; height: 440px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(0,168,232,0.28), transparent 70%);
+            top: -130px; right: -130px; animation: orbFloat 6s ease-in-out infinite;
+        }
+        #splash-screen::after {
+            content: ''; position: absolute; width: 340px; height: 340px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(0,86,179,0.35), transparent 70%);
+            bottom: -110px; left: -110px; animation: orbFloat 7s ease-in-out 1s infinite reverse;
+        }
+        @keyframes orbFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(28px); } }
         #splash-badge {
-            width: 84px; height: 84px; border-radius: 20px;
-            background: linear-gradient(135deg, #0056b3, #00a8e8);
+            width: 92px; height: 92px; border-radius: 24px;
+            background: linear-gradient(135deg, #00a8e8, #0056b3);
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 10px 30px rgba(0,86,179,0.35);
-            animation: splashPop 0.6s ease-out;
+            box-shadow: 0 0 0 0 rgba(0,168,232,0.45), 0 18px 40px rgba(0,0,0,0.4);
+            animation: splashPop 0.7s cubic-bezier(0.34,1.56,0.64,1), badgePulse 2.4s ease-in-out 1s infinite;
+            position: relative; z-index: 2;
         }
-        @keyframes splashPop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        #splash-title { font-size: 30px; font-weight: 800; letter-spacing: 3px; margin-top: 18px; color: #1a2b40; }
+        @keyframes splashPop { from { transform: scale(0.4) rotate(-8deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+        @keyframes badgePulse {
+            0%,100% { box-shadow: 0 0 0 0 rgba(0,168,232,0.45), 0 18px 40px rgba(0,0,0,0.4); }
+            50%     { box-shadow: 0 0 0 18px rgba(0,168,232,0), 0 18px 40px rgba(0,0,0,0.4); }
+        }
+        #splash-title { font-size: 34px; font-weight: 800; letter-spacing: 6px; margin-top: 22px; color: #ffffff; animation: fadeUp 0.8s 0.15s ease both; position: relative; z-index: 2; }
         #splash-pro {
-            font-size: 12px; font-weight: 700; letter-spacing: 2px; margin-left: 6px;
-            background: linear-gradient(135deg, #0056b3, #00a8e8);
-            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
-            border: 1.5px solid #00a8e8; border-radius: 6px; padding: 2px 6px; vertical-align: middle;
+            font-size: 12px; font-weight: 700; letter-spacing: 2px; margin-left: 7px;
+            color: #7ee0ff; border: 1.5px solid #7ee0ff; border-radius: 6px;
+            padding: 2px 7px; vertical-align: middle;
         }
-        #splash-route { position: relative; width: 180px; height: 20px; margin-top: 22px; overflow: hidden; }
-        #splash-route-line {
-            position: absolute; top: 50%; left: 0; width: 100%; height: 2px; transform: translateY(-50%);
-            background: repeating-linear-gradient(90deg, #cfd8e3 0 8px, transparent 8px 16px);
+        #splash-sub { color: #9fc4e8; font-size: 11px; letter-spacing: 4px; margin-top: 8px; text-transform: uppercase; animation: fadeUp 0.8s 0.3s ease both; position: relative; z-index: 2; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        #splash-road { position: relative; width: 230px; height: 40px; margin-top: 28px; animation: fadeUp 0.8s 0.45s ease both; z-index: 2; }
+        #splash-road::before {
+            content: ''; position: absolute; bottom: 8px; left: 0; width: 100%; height: 3px; border-radius: 3px;
+            background: repeating-linear-gradient(90deg, rgba(255,255,255,0.5) 0 14px, transparent 14px 28px);
+            animation: roadMove 0.5s linear infinite;
         }
-        #splash-route-dot { position: absolute; top: 50%; left: 0; transform: translateY(-50%); font-size: 16px; animation: driveRoute 1.8s linear infinite; }
-        @keyframes driveRoute { 0% { left: 0%; } 100% { left: calc(100% - 18px); } }
-        #splash-tip { margin-top: 16px; font-size: 12px; color: #8a96a8; text-align: center; padding: 0 40px; min-height: 14px; }
+        @keyframes roadMove { from { background-position: 0 0; } to { background-position: -28px 0; } }
+        #splash-truck {
+            position: absolute; bottom: 11px; left: calc(50% - 15px); font-size: 27px;
+            animation: truckBounce 0.5s ease-in-out infinite;
+            filter: drop-shadow(0 6px 6px rgba(0,0,0,0.35));
+        }
+        @keyframes truckBounce { 0%,100% { transform: scaleX(-1) translateY(0); } 50% { transform: scaleX(-1) translateY(-2.5px); } }
+        #splash-bar { width: 150px; height: 4px; border-radius: 4px; margin-top: 22px; background: rgba(255,255,255,0.15); overflow: hidden; animation: fadeUp 0.8s 0.6s ease both; z-index: 2; }
+        #splash-bar::before {
+            content: ''; display: block; height: 100%; width: 40%; border-radius: 4px;
+            background: linear-gradient(90deg, #00a8e8, #7ee0ff);
+            animation: barSlide 1.1s ease-in-out infinite;
+        }
+        @keyframes barSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+        #splash-tip { margin-top: 14px; font-size: 12px; color: #8fb4d8; text-align: center; padding: 0 40px; min-height: 14px; animation: fadeUp 0.8s 0.7s ease both; position: relative; z-index: 2; }
 
         /* TOAST */
         #toast-container {
@@ -305,10 +339,11 @@
         </svg>
     </div>
     <div id="splash-title">CMR<span id="splash-pro">PRO</span></div>
-    <div id="splash-route">
-        <div id="splash-route-line"></div>
-        <div id="splash-route-dot">🚚</div>
+    <div id="splash-sub">International Consignment Note</div>
+    <div id="splash-road">
+        <div id="splash-truck">🚚</div>
     </div>
+    <div id="splash-bar"></div>
     <div id="splash-tip"></div>
 </div>
 
@@ -377,12 +412,16 @@
             <div class="line-v" style="top:15mm; left:202mm; height:275mm;"></div>
             <div class="line-h" style="top:290mm; left:8mm; width:194mm;"></div>
             <div class="line-v" style="top:15mm; left:105mm; height:107mm;"></div>
-            <!-- Grid separators: F2→F3 right-only at 38mm; full-width at 57mm, 87mm, 122mm; left-only F6→F8 at 103mm -->
+            <!-- Grid separators — split per column so each box border can be
+                 moved/resized independently in the editor -->
             <div class="line-h" style="top:38mm; left:105mm; width:97mm;"></div>
-            <div class="line-h" style="top:57mm; left:8mm; width:194mm;"></div>
-            <div class="line-h" style="top:87mm; left:8mm; width:194mm;"></div>
+            <div class="line-h" style="top:57mm; left:8mm; width:97mm;"></div>
+            <div class="line-h" style="top:57mm; left:105mm; width:97mm;"></div>
+            <div class="line-h" style="top:87mm; left:8mm; width:97mm;"></div>
+            <div class="line-h" style="top:87mm; left:105mm; width:97mm;"></div>
             <div class="line-h" style="top:103mm; left:8mm; width:97mm;"></div>
-            <div class="line-h" style="top:122mm; left:8mm; width:194mm;"></div>
+            <div class="line-h" style="top:122mm; left:8mm; width:97mm;"></div>
+            <div class="line-h" style="top:122mm; left:105mm; width:97mm;"></div>
 
             <!-- FIELD 1: SENDER (15–57mm = 42mm) -->
             <div class="num" style="top:16mm; left:99mm;">1</div>
@@ -485,7 +524,8 @@ www.nolantransport.com</textarea>
             <input id="inp_pal_dout" class="cmr-input" list="pallet-opts" style="top:206mm; left:104mm; width:42mm; height:8mm; text-align:center;">
 
             <!-- FIELDS 12 & 13 (divider at 105mm, row 215–230) -->
-            <div class="line-h" style="top:215mm; left:8mm; width:194mm;"></div>
+            <div class="line-h" style="top:215mm; left:8mm; width:97mm;"></div>
+            <div class="line-h" style="top:215mm; left:105mm; width:97mm;"></div>
             <div class="line-v" style="top:215mm; left:105mm; height:15mm;"></div>
             <div class="num" style="top:216mm; left:99mm;">12</div>
             <div class="lbl" style="top:216mm; left:9mm;">Carriage Charges. Prix de transport.</div>
@@ -496,7 +536,8 @@ www.nolantransport.com</textarea>
             <input id="inp_f13" class="cmr-input" style="top:219mm; left:106mm; width:95mm; height:8mm;">
 
             <!-- FIELDS 14 & 15/16 (divider at 80mm like original, row 230–260) -->
-            <div class="line-h" style="top:230mm; left:8mm; width:194mm;"></div>
+            <div class="line-h" style="top:230mm; left:8mm; width:72mm;"></div>
+            <div class="line-h" style="top:230mm; left:80mm; width:122mm;"></div>
             <div class="line-v" style="top:230mm; left:80mm; height:30mm;"></div>
             <div class="num" style="top:231mm; left:74mm;">14</div>
             <div class="lbl" style="top:231mm; left:9mm;">Reservations. Réserves.</div>
@@ -514,8 +555,10 @@ www.nolantransport.com</textarea>
             <div class="lbl lbl-bold" style="top:253mm; left:143mm;">DEGREES CENTIGRADE</div>
             <input id="inp_temp2" class="cmr-input" style="top:252mm; left:175mm; width:20mm; height:5mm; background:transparent; text-align:center;">
 
-            <!-- SIGNATURE SECTION -->
-            <div class="line-h" style="top:260mm; left:8mm; width:194mm;"></div>
+            <!-- SIGNATURE SECTION — top border split into the 3 boxes (17/18/19) -->
+            <div class="line-h" style="top:260mm; left:8mm; width:64mm;"></div>
+            <div class="line-h" style="top:260mm; left:72mm; width:64mm;"></div>
+            <div class="line-h" style="top:260mm; left:136mm; width:66mm;"></div>
             <div class="line-v" style="top:260mm; left:72mm; height:30mm;"></div>
             <div class="line-v" style="top:260mm; left:136mm; height:30mm;"></div>
 
@@ -631,6 +674,16 @@ www.nolantransport.com</textarea>
     </div>
 
     <div class="card">
+        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📄 Ustawienia dokumentu</h3>
+        <label style="display:flex; align-items:center; gap:10px; font-size:13px; color:#333; cursor:pointer; margin-bottom:12px;">
+            <input type="checkbox" id="profile_autodate" style="width:20px; height:20px; accent-color:#0056b3;">
+            Automatycznie wstawiaj dzisiejszą datę (pola 17 i 20) w nowym CMR
+        </label>
+        <span class="input-label">Domyślna miejscowość podpisu (pole 20):</span>
+        <input id="profile_place20" class="app-input" placeholder="np. New Ross">
+    </div>
+
+    <div class="card">
         <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">✍️ Twój stały podpis</h3>
         <p style="font-size:12px; color:#666; margin:0 0 8px;">Użyj przycisku "Mój Podpis" w polu 18 CMR.</p>
         <div style="border:1px solid #ccc; height:100px; background:white; border-radius:4px; margin-bottom:10px; position:relative;">
@@ -673,11 +726,12 @@ www.nolantransport.com</textarea>
 
 <!-- ADVANCED EDITOR TOOLBAR -->
 <div id="le-tb">
-    <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
         <span id="le-tb-type" style="font-size:12px; font-weight:bold; color:#0056b3; flex:1;"></span>
         <button class="le-sm-btn" id="le-lock-btn" onclick="toggleLELock()">🔓 Zablokuj</button>
         <button class="le-sm-btn" style="background:#dc3545;" onclick="deselectLE()">✕</button>
     </div>
+    <div style="font-size:9px; color:#999; margin-bottom:8px;">📏 Wymiary w mm — dokładnie tyle, ile będzie na wydruku A4</div>
     <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-bottom:8px;">
         <div><div style="font-size:9px;color:#888;margin-bottom:3px;">Góra (mm)</div><input id="le-top" type="number" step="0.5" class="le-num-in" oninput="applyLETBPos()"></div>
         <div><div style="font-size:9px;color:#888;margin-bottom:3px;">Lewo (mm)</div><input id="le-left" type="number" step="0.5" class="le-num-in" oninput="applyLETBPos()"></div>
@@ -779,6 +833,7 @@ window.addEventListener('load', () => {
     loadFullLayout();
     loadDraft();
     updateCarrierDisplay();
+    applyDocDefaults();
     const carrierTA = document.getElementById('inp_carrier');
     if(carrierTA) carrierTA.addEventListener('input', updateCarrierDisplay);
     loadHistoryList();
@@ -1226,24 +1281,45 @@ function delDb(id) {
 // ============================================================
 function saveProfile() {
     const d = {
-        c_name: document.getElementById('profile_c_name').value,
-        c:      document.getElementById('profile_carrier').value,
-        tr:     document.getElementById('profile_tr').value,
-        trl:    document.getElementById('profile_trl').value
+        c_name:   document.getElementById('profile_c_name').value,
+        c:        document.getElementById('profile_carrier').value,
+        tr:       document.getElementById('profile_tr').value,
+        trl:      document.getElementById('profile_trl').value,
+        autodate: document.getElementById('profile_autodate').checked,
+        place20:  document.getElementById('profile_place20').value
     };
     localStorage.setItem('cmr_prof', JSON.stringify(d));
     updateCMRFromProfile(d);
+    applyDocDefaults();
     toast('✅ Profil zapisany!', 'success');
 }
 
 function loadProfile() {
     const d = JSON.parse(localStorage.getItem('cmr_prof'));
     if(!d) return;
-    if(d.c_name) document.getElementById('profile_c_name').value = d.c_name;
-    if(d.c)     document.getElementById('profile_carrier').value = d.c;
-    if(d.tr)    document.getElementById('profile_tr').value = d.tr;
-    if(d.trl)   document.getElementById('profile_trl').value = d.trl;
+    if(d.c_name)  document.getElementById('profile_c_name').value = d.c_name;
+    if(d.c)       document.getElementById('profile_carrier').value = d.c;
+    if(d.tr)      document.getElementById('profile_tr').value = d.tr;
+    if(d.trl)     document.getElementById('profile_trl').value = d.trl;
+    if(d.autodate) document.getElementById('profile_autodate').checked = true;
+    if(d.place20) document.getElementById('profile_place20').value = d.place20;
     updateCMRFromProfile(d);
+}
+
+// Fill empty date/place fields from document defaults (never overwrites)
+function applyDocDefaults() {
+    const d = JSON.parse(localStorage.getItem('cmr_prof') || '{}');
+    if(d.place20) {
+        const el = document.getElementById('inp_place20');
+        if(el && !el.value) el.value = d.place20;
+    }
+    if(d.autodate) {
+        const today = new Date().toISOString().slice(0, 10);
+        ['inp_date20', 'inp_sig1_date'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el && !el.value) el.value = today;
+        });
+    }
 }
 
 function updateCMRFromProfile(d) {
@@ -1584,6 +1660,7 @@ function newCMR() {
     clearSig('sig2');
     clearValidation();
     updateCarrierDisplay();
+    applyDocDefaults();
     localStorage.removeItem('cmr_draft');
     const status = document.getElementById('draft-status');
     if(status) status.textContent = '';
@@ -2041,7 +2118,7 @@ function onLEEnd() {
 // ---- Save / load / reset ----
 // Bump when CMR element structure changes — old saved layouts map le-ids
 // to different elements and would scramble the form.
-const LE_LAYOUT_VER = 3;
+const LE_LAYOUT_VER = 4;
 
 function saveFullLayout() {
     const page = document.getElementById('cmr-page');
