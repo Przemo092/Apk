@@ -252,16 +252,16 @@
 <!-- FULLSCREEN SIGNATURE OVERLAY -->
 <div id="sig-overlay">
     <div id="sig-overlay-header">
-        <span id="sig-overlay-title">Podpis</span>
-        <div style="display:flex; gap:8px;">
-            <button style="background:#dc3545;" onclick="clearOverlaySig()">Wyczyść</button>
-            <button style="background:#28a745;" onclick="confirmOverlaySig()">✓ Zatwierdź</button>
-            <button style="background:#6c757d;" onclick="closeOverlaySig()">✕</button>
-        </div>
+        <button style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.4); color:white; padding:8px 14px; border-radius:8px; font-size:14px; cursor:pointer;" onclick="closeOverlaySig()">✕ Anuluj</button>
+        <span id="sig-overlay-title" style="font-weight:bold; font-size:16px;">Podpis</span>
+        <button style="background:#dc3545; border:none; color:white; padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer;" onclick="clearOverlaySig()">Wyczyść</button>
     </div>
     <div id="sig-overlay-wrap">
         <canvas id="overlay-sig-canvas"></canvas>
         <div id="sig-overlay-hint">✍️ Podpisz tutaj</div>
+    </div>
+    <div style="padding:14px; background:#f0f4f8;">
+        <button style="width:100%; background:#28a745; border:none; color:white; padding:16px; border-radius:12px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(40,167,69,0.35);" onclick="confirmOverlaySig()">✓ Dodaj podpis</button>
     </div>
 </div>
 
@@ -297,86 +297,88 @@
             <div class="line-v" style="top:15mm; left:8mm; height:275mm;"></div>
             <div class="line-v" style="top:15mm; left:202mm; height:275mm;"></div>
             <div class="line-h" style="top:290mm; left:8mm; width:194mm;"></div>
-            <div class="line-v" style="top:15mm; left:105mm; height:103mm;"></div>
-            <div class="line-h" style="top:40mm; left:8mm; width:97mm;"></div>
-            <div class="line-h" style="top:65mm; left:8mm; width:97mm;"></div>
-            <div class="line-h" style="top:85mm; left:8mm; width:97mm;"></div>
-            <div class="line-h" style="top:118mm; left:8mm; width:194mm;"></div>
-            <div class="line-h" style="top:28mm; left:105mm; width:97mm;"></div>
-            <div class="line-h" style="top:40mm; left:105mm; width:97mm;"></div>
-            <div class="line-h" style="top:75mm; left:105mm; width:97mm;"></div>
+            <div class="line-v" style="top:15mm; left:105mm; height:105mm;"></div>
+            <!-- Left col separators: 1→4 at 44mm, 4→6 at 66mm, 6→8 at 86mm -->
+            <div class="line-h" style="top:44mm; left:8mm; width:97mm;"></div>
+            <div class="line-h" style="top:66mm; left:8mm; width:97mm;"></div>
+            <div class="line-h" style="top:86mm; left:8mm; width:97mm;"></div>
+            <div class="line-h" style="top:120mm; left:8mm; width:194mm;"></div>
+            <!-- Right col separators: 2→3 at 30mm, 3→5 at 44mm (matches left), 5→7 at 86mm -->
+            <div class="line-h" style="top:30mm; left:105mm; width:97mm;"></div>
+            <div class="line-h" style="top:44mm; left:105mm; width:97mm;"></div>
+            <div class="line-h" style="top:86mm; left:105mm; width:97mm;"></div>
 
-            <!-- FIELD 1: SENDER -->
+            <!-- FIELD 1: SENDER — taller to match original (~22mm usable) -->
             <div class="num" style="top:16mm; left:99mm;">1</div>
-            <div class="lbl" style="top:16mm; left:9mm; width:85mm;">Sender (Name, Address, Country) / Expéditeur</div>
-            <textarea id="inp_sender" class="cmr-input" style="top:22mm; left:9mm; width:95mm; height:17mm;"></textarea>
+            <div class="lbl" style="top:16mm; left:9mm; width:85mm;">Sender (name, address, country)  Expéditeur (nom, adresse, pays)</div>
+            <textarea id="inp_sender" class="cmr-input" style="top:22mm; left:9mm; width:95mm; height:21mm;"></textarea>
             <div class="quick-pick" style="top:17mm; left:90mm;" onclick="openPicker('sender')" title="Wybierz z bazy">📂</div>
 
             <!-- FIELD 4: CONSIGNEE -->
-            <div class="num" style="top:41mm; left:99mm;">4</div>
-            <div class="lbl" style="top:41mm; left:9mm; width:85mm;">Consignee (Name, Address, Country) / Destinataire</div>
-            <textarea id="inp_consignee" class="cmr-input" style="top:47mm; left:9mm; width:95mm; height:17mm;"></textarea>
-            <div class="quick-pick" style="top:42mm; left:90mm;" onclick="openPicker('consignee')">📂</div>
+            <div class="num" style="top:45mm; left:99mm;">4</div>
+            <div class="lbl" style="top:45mm; left:9mm; width:85mm;">Consignee (name, address, country)  Destinataire (nom, adresse, pays)</div>
+            <textarea id="inp_consignee" class="cmr-input" style="top:50mm; left:9mm; width:95mm; height:15mm;"></textarea>
+            <div class="quick-pick" style="top:46mm; left:90mm;" onclick="openPicker('consignee')">📂</div>
 
             <!-- FIELD 6: PLACE OF TAKING OVER (PICKUP) -->
-            <div class="num" style="top:66mm; left:99mm;">6</div>
-            <div class="lbl" style="top:66mm; left:9mm; width:85mm;">Place &amp; Date of taking over the goods (place, country, date)<br>Lieu et date de la prise en charge des marchandises</div>
-            <textarea id="inp_pickup" class="cmr-input" style="top:72mm; left:9mm; width:95mm; height:12mm;"></textarea>
-            <div class="quick-pick" style="top:67mm; left:90mm;" onclick="openPicker('pickup')">📂</div>
-            <div class="geo-btn" style="top:67mm; left:65mm;" onclick="getGeo('inp_pickup')" title="Pobierz lokalizację GPS">📍</div>
+            <div class="num" style="top:67mm; left:99mm;">6</div>
+            <div class="lbl" style="top:67mm; left:9mm; width:85mm;">Place &amp; Date of taking over the goods (place, country, date).<br>Lieu et date de la prise en charge des marchandises (lieu, pays, date).</div>
+            <textarea id="inp_pickup" class="cmr-input" style="top:73mm; left:9mm; width:95mm; height:11mm;"></textarea>
+            <div class="quick-pick" style="top:68mm; left:90mm;" onclick="openPicker('pickup')">📂</div>
+            <div class="geo-btn" style="top:68mm; left:65mm;" onclick="getGeo('inp_pickup')" title="Pobierz lokalizację GPS">📍</div>
 
             <!-- FIELD 8: DELIVERY PLACE -->
-            <div class="num" style="top:86mm; left:99mm;">8</div>
-            <div class="lbl" style="top:86mm; left:9mm; width:85mm;">Place designated for delivery of goods (place, country).<br>Lieu prévu pour la livraison des marchandises</div>
-            <textarea id="inp_destination" class="cmr-input" style="top:92mm; left:9mm; width:95mm; height:25mm;"></textarea>
-            <div class="quick-pick" style="top:87mm; left:90mm;" onclick="openPicker('destination')">📂</div>
-            <div class="geo-btn" style="top:87mm; left:65mm;" onclick="getGeo('inp_destination')">📍</div>
-
-            <!-- FIELD 5: CARRIER -->
-            <div class="num" style="top:41mm; left:196mm;">5</div>
-            <div class="lbl" style="top:41mm; left:106mm; width:85mm;">Carrier (Name, Address, Country) / Transporteur</div>
-            <textarea id="inp_carrier" class="cmr-input" style="top:46mm; left:106mm; width:95mm; height:28mm; text-align:center; font-weight:bold; font-size:11pt;"></textarea>
-
-            <!-- TRACTOR / TRAILER -->
-            <div class="lbl lbl-bold" style="top:97mm; left:106mm;">TRACTOR / TRACTEUR NR:</div>
-            <input id="inp_tractor" class="cmr-input" style="top:96mm; left:140mm; width:60mm; height:5mm;">
-            <div class="quick-pick" style="top:95mm; left:196mm;" onclick="openPicker('tractor')">🚛</div>
-
-            <div class="lbl lbl-bold" style="top:103mm; left:106mm;">TRAILER / REMORQUE NR:</div>
-            <input id="inp_trailer" class="cmr-input" style="top:102mm; left:140mm; width:60mm; height:5mm;">
-            <div class="quick-pick" style="top:101mm; left:196mm;" onclick="openPicker('trailer')">🚛</div>
+            <div class="num" style="top:87mm; left:99mm;">8</div>
+            <div class="lbl" style="top:87mm; left:9mm; width:85mm;">Place designated for delivery of goods (place, country).<br>Lieu prévu pour la livraison des marchandises (lieu, pays).</div>
+            <textarea id="inp_destination" class="cmr-input" style="top:93mm; left:9mm; width:95mm; height:26mm;"></textarea>
+            <div class="quick-pick" style="top:88mm; left:90mm;" onclick="openPicker('destination')">📂</div>
+            <div class="geo-btn" style="top:88mm; left:65mm;" onclick="getGeo('inp_destination')">📍</div>
 
             <!-- FIELD 2 -->
             <div class="num" style="top:16mm; left:196mm;">2</div>
-            <div class="lbl" style="top:16mm; left:106mm; width:90mm;">Customs Reference/Status Référence/designation pour mise en douane</div>
-            <input id="inp_f2" class="cmr-input" style="top:20mm; left:106mm; width:95mm; height:7mm;">
+            <div class="lbl" style="top:16mm; left:106mm; width:90mm;">Customs Reference/Status.  Référence/designation pour mise en douane</div>
+            <input id="inp_f2" class="cmr-input" style="top:21mm; left:106mm; width:95mm; height:8mm;">
 
             <!-- FIELD 3 -->
-            <div class="num" style="top:29mm; left:196mm;">3</div>
-            <div class="lbl" style="top:29mm; left:106mm; width:90mm;">Senders/Agent's Reference. Référence de l'expéditeur/de l'agent.</div>
-            <input id="inp_f3" class="cmr-input" style="top:33mm; left:106mm; width:95mm; height:6mm;">
+            <div class="num" style="top:31mm; left:196mm;">3</div>
+            <div class="lbl" style="top:31mm; left:106mm; width:90mm;">Senders/Agent's Reference.  Référence de l'expéditeur/de l'agent.</div>
+            <input id="inp_f3" class="cmr-input" style="top:35mm; left:106mm; width:95mm; height:8mm;">
+
+            <!-- FIELD 5: CARRIER — taller to hold full address block -->
+            <div class="num" style="top:45mm; left:196mm;">5</div>
+            <div class="lbl" style="top:45mm; left:106mm; width:85mm;">Carrier (Name, Address, Country).  Transporteur (Nom, Adresse, Pays).</div>
+            <textarea id="inp_carrier" class="cmr-input" style="top:50mm; left:106mm; width:95mm; height:35mm; text-align:center; font-weight:bold; font-size:10pt;"></textarea>
 
             <!-- FIELD 7 -->
-            <div class="num" style="top:76mm; left:196mm;">7</div>
-            <div class="lbl" style="top:76mm; left:106mm; width:95mm;">Successive carriers / Transporteurs successifs</div>
-            <textarea id="inp_f7" class="cmr-input" style="top:80mm; left:106mm; width:95mm; height:15mm;"></textarea>
+            <div class="num" style="top:87mm; left:196mm;">7</div>
+            <div class="lbl" style="top:87mm; left:106mm; width:95mm;">Successive carriers.  Transporteurs successifs.</div>
+            <textarea id="inp_f7" class="cmr-input" style="top:91mm; left:106mm; width:95mm; height:10mm;"></textarea>
 
-            <div class="lbl" style="top:109mm; left:106mm; width:95mm; font-size:5pt; text-align:justify; line-height:1;">This carriage is subject, notwithstanding any clause to the contrary, to the convention on the Contract for the International Carriage of Goods by Road (CMR).<br>Ce transport est soumis, nonobstant toute clause au contraire, à la convention relative au contrat de transport international de marchandises par route (CMR).</div>
+            <!-- TRACTOR / TRAILER -->
+            <div class="lbl lbl-bold" style="top:103mm; left:106mm;">TRACTOR / TRACTEUR NR :</div>
+            <input id="inp_tractor" class="cmr-input" style="top:102mm; left:143mm; width:57mm; height:5mm;">
+            <div class="quick-pick" style="top:101mm; left:196mm;" onclick="openPicker('tractor')">🚛</div>
+
+            <div class="lbl lbl-bold" style="top:109mm; left:106mm;">TRAILER / REMORQUE NR :</div>
+            <input id="inp_trailer" class="cmr-input" style="top:108mm; left:143mm; width:57mm; height:5mm;">
+            <div class="quick-pick" style="top:107mm; left:196mm;" onclick="openPicker('trailer')">🚛</div>
+
+            <div class="lbl" style="top:114mm; left:106mm; width:95mm; font-size:4.5pt; text-align:justify; line-height:1.15;">This carriage is subject, notwithstanding any clause to the contrary, to the convention on the contract for the International Carriage of Goods by Road (CMR).<br>Ce transport est soumis, nonobstant toute clause contraire, à la convention relative au contrat de transport international de marchandises par route (CMR).</div>
 
             <!-- GOODS TABLE -->
-            <div class="num" style="top:119mm; left:148mm;">9</div>
-            <div class="line-v" style="top:118mm; left:155mm; height:97mm;"></div>
-            <div class="line-v" style="top:118mm; left:178mm; height:97mm;"></div>
-            <div class="lbl" style="top:119mm; left:9mm; width:140mm;">Marks &amp; No, Kind of Packages, Description of Goods<br>Marques et numéros, Nombre et nature des colis, Désignation de la marchandise</div>
+            <div class="num" style="top:121mm; left:148mm;">9</div>
+            <div class="line-v" style="top:120mm; left:155mm; height:95mm;"></div>
+            <div class="line-v" style="top:120mm; left:178mm; height:95mm;"></div>
+            <div class="lbl" style="top:121mm; left:9mm; width:140mm;">Marks &amp; No; Kind of Packages; Description of Goods*.<br>Marques &amp; No; No.et nature des colis; désignation des marchandises*.</div>
 
-            <div class="num" style="top:119mm; left:172mm;">10</div>
-            <div class="lbl" style="top:119mm; left:156mm;">Gross weight (kg)<br>Poids brut (kg)</div>
-            <div class="num" style="top:119mm; left:196mm;">11</div>
-            <div class="lbl" style="top:119mm; left:179mm;">Volume (m³)<br>Cubage (m³)</div>
+            <div class="num" style="top:121mm; left:172mm;">10</div>
+            <div class="lbl" style="top:121mm; left:156mm;">Gross weight in kg<br>Poids brut, kg</div>
+            <div class="num" style="top:121mm; left:196mm;">11</div>
+            <div class="lbl" style="top:121mm; left:179mm;">Volume in m³<br>Cubage m³</div>
 
-            <textarea id="inp_goods" class="cmr-input" style="top:125mm; left:9mm; width:145mm; height:68mm;"></textarea>
-            <textarea id="inp_weight" class="cmr-input" style="top:125mm; left:156mm; width:21mm; height:68mm; text-align:center;"></textarea>
-            <textarea id="inp_vol" class="cmr-input" style="top:125mm; left:179mm; width:22mm; height:68mm; text-align:center;"></textarea>
+            <textarea id="inp_goods" class="cmr-input" style="top:127mm; left:9mm; width:145mm; height:68mm;"></textarea>
+            <textarea id="inp_weight" class="cmr-input" style="top:127mm; left:156mm; width:21mm; height:68mm; text-align:center;"></textarea>
+            <textarea id="inp_vol" class="cmr-input" style="top:127mm; left:179mm; width:22mm; height:68mm; text-align:center;"></textarea>
 
             <!-- PALLETS -->
             <div class="line-h" style="top:195mm; left:8mm; width:147mm;"></div>
@@ -432,26 +434,30 @@
             <div class="line-v" style="top:260mm; left:72mm; height:30mm;"></div>
             <div class="line-v" style="top:260mm; left:136mm; height:30mm;"></div>
 
-            <!-- SIG 1: Goods Received -->
-            <div class="lbl" style="top:261mm; left:9mm;">Goods Received / Marchandises reçues</div>
+            <!-- SIG 1: Goods Received (field 17) — PRINT NAME / SIGNATURE / DATE -->
+            <div class="lbl" style="top:261mm; left:9mm;">Goods Received.  Machandises reçues.</div>
             <div class="num" style="top:261mm; left:66mm;">17</div>
-            <div class="sig-box" style="top:265mm; left:8mm; width:64mm; height:25mm;">
+            <div class="lbl lbl-bold" style="top:265mm; left:9mm;">PRINT NAME:</div>
+            <input id="inp_print_name" class="cmr-input" style="top:264mm; left:28mm; width:42mm; height:5mm; background:transparent; font-size:8pt; font-weight:bold;">
+            <div class="lbl lbl-bold" style="top:271mm; left:9mm;">SIGNATURE:</div>
+            <div class="sig-box" style="top:270mm; left:8mm; width:64mm; height:11mm;">
                 <canvas id="sig1" class="sig-canvas-inner"></canvas>
-                <button class="sig-ui-btn" style="top:0; right:24px; background:#dc3545;" onclick="clearSig('sig1')">X</button>
-                <button class="sig-ui-btn" style="top:0; right:0; background:#0056b3;" onclick="openOverlaySig('sig1','Podpis odbiorcy')">✍️</button>
+                <button class="sig-ui-btn" style="top:0; right:20px; background:#dc3545;" onclick="clearSig('sig1')">X</button>
+                <button class="sig-ui-btn" style="top:0; right:0; background:#0056b3;" onclick="openOverlaySig('sig1','Podpis odbiorcy (pole 17)')">✍️</button>
             </div>
+            <div class="lbl lbl-bold" style="top:283mm; left:9mm;">DATE:</div>
+            <input id="inp_sig1_date" class="cmr-input" type="date" style="top:282mm; left:22mm; width:48mm; height:5mm; background:transparent; font-size:8pt;">
 
-            <!-- SIG 2: Carrier Signature -->
+            <!-- SIG 2: Carrier Signature (field 18) -->
             <div class="num" style="top:261mm; left:130mm;">18</div>
-            <div class="lbl" style="top:261mm; left:73mm;">Signature of Carrier / Signature du transporteur</div>
-            <div class="lbl" style="top:265mm; left:73mm; font-weight:900; font-size:8pt;">SEAL NR:</div>
-            <input id="inp_seal" class="cmr-input" style="top:264mm; left:92mm; width:40mm; height:5mm; background:transparent; font-weight:900;">
-
-            <div class="sig-box" style="top:269mm; left:72mm; width:64mm; height:21mm;">
+            <div class="lbl" style="top:261mm; left:73mm;">Signature of Carrier/Signature du transporteur.</div>
+            <div class="lbl lbl-bold" style="top:266mm; left:73mm;">SEAL NR:</div>
+            <input id="inp_seal" class="cmr-input" style="top:265mm; left:90mm; width:42mm; height:5mm; background:transparent; font-weight:900;">
+            <div class="sig-box" style="top:271mm; left:72mm; width:64mm; height:19mm;">
                 <canvas id="sig2" class="sig-canvas-inner"></canvas>
-                <button class="sig-ui-btn" style="top:0; right:24px; background:#dc3545;" onclick="clearSig('sig2')">X</button>
-                <button class="sig-ui-btn" style="top:0; right:0; background:#0056b3;" onclick="openOverlaySig('sig2','Podpis przewoźnika')">✍️</button>
-                <button class="sig-ui-btn" style="top:-18px; right:48px; background:#1565c0; white-space:nowrap;" onclick="pasteMySig()">Mój Podpis</button>
+                <button class="sig-ui-btn" style="top:0; right:20px; background:#dc3545;" onclick="clearSig('sig2')">X</button>
+                <button class="sig-ui-btn" style="top:0; right:0; background:#0056b3;" onclick="openOverlaySig('sig2','Podpis przewoźnika (pole 18)')">✍️</button>
+                <button class="sig-ui-btn" style="top:-16px; right:44px; background:#1565c0; white-space:nowrap;" onclick="pasteMySig()">Mój Podpis</button>
             </div>
 
             <!-- FIELD 19 -->
@@ -598,6 +604,7 @@ const CMR_FIELD_IDS = [
     'inp_pal_lin','inp_pal_lout','inp_pal_din','inp_pal_dout',
     'inp_f12','inp_f13','inp_f14','inp_f15',
     'inp_temp1','inp_temp2',
+    'inp_print_name','inp_sig1_date',
     'inp_seal','inp_f19','inp_place20','inp_date20'
 ];
 
@@ -1186,7 +1193,7 @@ function attachSigEvents(pad) {
         resizeSigCanvas(pad);
         pad.drawing = true;
         const rect = canvas.getBoundingClientRect();
-        ctx.lineWidth   = 2.4 * (canvas.width / rect.width);
+        ctx.lineWidth   = 1.5 * (canvas.width / rect.width);
         ctx.lineCap     = 'round';
         ctx.lineJoin    = 'round';
         ctx.strokeStyle = '#000';
