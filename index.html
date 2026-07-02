@@ -1557,11 +1557,13 @@ function updateCMRFromProfile(d) {
 // ============================================================
 function exportData() {
     const backup = {
-        db:   JSON.parse(localStorage.getItem('cmr_db')      || '[]'),
-        prof: JSON.parse(localStorage.getItem('cmr_prof')    || '{}'),
-        hist: JSON.parse(localStorage.getItem('cmr_history') || '[]'),
-        sig:  localStorage.getItem('cmr_sig') || '',
-        date: new Date().toLocaleString()
+        db:     JSON.parse(localStorage.getItem('cmr_db')      || '[]'),
+        prof:   JSON.parse(localStorage.getItem('cmr_prof')    || '{}'),
+        hist:   JSON.parse(localStorage.getItem('cmr_history') || '[]'),
+        sig:    localStorage.getItem('cmr_sig') || '',
+        layout: localStorage.getItem('cmr_layout') || '',
+        pin:    localStorage.getItem('cmr_pin') || '',
+        date:   new Date().toLocaleString()
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1586,7 +1588,9 @@ function importData(input) {
             if(backup.db)   localStorage.setItem('cmr_db', JSON.stringify(backup.db));
             if(backup.prof) localStorage.setItem('cmr_prof', JSON.stringify(backup.prof));
             if(backup.hist) localStorage.setItem('cmr_history', JSON.stringify(backup.hist));
-            if(backup.sig)  localStorage.setItem('cmr_sig', backup.sig);
+            if(backup.sig)    localStorage.setItem('cmr_sig', backup.sig);
+            if(backup.layout) localStorage.setItem('cmr_layout', backup.layout);
+            if(backup.pin)    localStorage.setItem('cmr_pin', backup.pin);
             toast('✅ Backup wgrany! Odświeżanie…', 'success');
             setTimeout(() => location.reload(), 1200);
         } catch(err) { toast('❌ Błąd pliku backup!', 'error'); }
@@ -2748,7 +2752,11 @@ function loadFullLayout() {
     try {
         const data = JSON.parse(raw);
         if(data.ver !== LE_LAYOUT_VER) {
+            // NEVER delete the user's work — archive the incompatible layout
+            // so it can be migrated or inspected later
+            localStorage.setItem('cmr_layout_archived_v' + (data.ver || 0), raw);
             localStorage.removeItem('cmr_layout');
+            toast('⚠️ Układ z poprzedniej wersji aplikacji zarchiwizowano — ustaw go ponownie i pobierz Backup w Profilu', 'info', 7000);
             return;
         }
         const {positions={}, fonts={}, weights={}, italics={}, aligns={}, texts={}, customs=[], hidden=[], locked=[]} = data;
