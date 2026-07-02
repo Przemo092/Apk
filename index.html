@@ -348,6 +348,15 @@
             }
             input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
             input.empty-date { visibility: hidden !important; }
+            #scan-bg { display: none !important; }
+            /* blank-sheet print: keep the grid and Nolan pre-print, hide data */
+            #cmr-page.print-blank .cmr-input { color: transparent !important; -webkit-text-fill-color: transparent !important; }
+            #cmr-page.print-blank .sig-canvas-inner { visibility: hidden !important; }
+            /* data-only print (onto a pre-printed CMR): hide all form graphics */
+            #cmr-page.data-only .line-h, #cmr-page.data-only .line-v,
+            #cmr-page.data-only .lbl, #cmr-page.data-only .num,
+            #cmr-page.data-only .carrier-display { display: none !important; }
+            #cmr-page.data-only.hide-f14 #inp_f14 { visibility: hidden !important; }
             * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
@@ -412,7 +421,11 @@
         </div>
         <div class="btn-row" style="margin-bottom:4px;">
             <button class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="repeatLastRoute()">🔁 Ostatnia trasa</button>
-            <button id="layout-edit-btn" class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="requestLEMode()">📐 Edytuj układ pól</button>
+            <button id="layout-edit-btn" class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="requestLEMode()">📐 Edytuj układ</button>
+        </div>
+        <div class="btn-row" style="margin-bottom:4px;">
+            <button class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="printBlankCMR()">📄 Pusty druk</button>
+            <button class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="printDataOnly()">🖨️ Druk na gotowym CMR</button>
         </div>
         <div id="layout-bar" style="display:none; background:#e8eeff; border-radius:8px; padding:9px 12px; margin-bottom:8px; flex-direction:column; gap:7px;">
             <div style="font-size:11px; color:#0056b3;">✏️ Kliknij element = wybierz · przeciągnij = przesuń · niebieski róg = rozmiar. Włącz tylko to, co chcesz edytować:</div>
@@ -442,6 +455,7 @@
 
     <div class="cmr-wrapper">
         <div class="page" id="cmr-page">
+            <img id="scan-bg" alt="" style="display:none; position:absolute; top:0; left:0; width:210mm; height:296mm; z-index:0; pointer-events:none; opacity:0.9;">
             <div class="lbl lbl-title" style="top:9mm; left:8mm;">LETTRE DE VOITURE INTERNATIONALE</div>
             <div class="lbl" id="cmr-logo-oval" style="top:7mm; left:100mm; width:9mm; height:5.3mm; border:1px solid #000; border-radius:50%; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:9pt; z-index:20; line-height:normal;">CMR</div>
             <div class="lbl lbl-title" style="top:9mm; right:8mm;">INTERNATIONAL CONSIGNMENT NOTE</div>
@@ -767,6 +781,16 @@ www.nolantransport.com</textarea>
         </div>
     </div>
 
+    <div class="card">
+        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">🖨️ Druk na gotowym druku CMR</h3>
+        <p style="font-size:12px; color:#555; margin:0 0 10px;">Wgraj skan/zdjęcie swojego papierowego CMR jako podkład, dopasuj pola w edytorze do podkładu, a potem drukuj <b>same dane</b> prosto na gotowy formularz.</p>
+        <input type="file" id="scan-file" accept="image/*" style="display:none;" onchange="onScanFile(this)">
+        <button class="btn btn-primary" onclick="document.getElementById('scan-file').click()">📷 Wgraj skan CMR (podkład)</button>
+        <button class="btn btn-gray" id="scan-toggle-btn" style="margin-top:8px;" onclick="toggleScanBg()">👁 Pokaż podkład na ekranie</button>
+        <button class="btn btn-danger" style="margin-top:8px;" onclick="removeScan()">🗑 Usuń podkład</button>
+        <p style="font-size:11px; color:#888; margin:10px 0 0;">Podkład widać tylko na ekranie — nigdy się nie drukuje. Do druku danych użyj przycisku "🖨️ Druk na gotowym CMR" na zakładce CMR.</p>
+    </div>
+
     <div class="card" style="background:#e3f2fd; border:1px solid #bbdefb;">
         <h3 style="margin-top:0; border-bottom:1px solid #bbdefb; padding-bottom:10px; color:#0d47a1;">💾 Kopia Zapasowa i aktualizacje</h3>
         <button class="btn btn-success" style="margin-bottom:10px;" onclick="checkAppUpdate(false)">🔄 Sprawdź aktualizację aplikacji</button>
@@ -952,7 +976,15 @@ window.addEventListener('load', () => {
     window.addEventListener('resize', () => {
         Object.values(sigPads).forEach(p => resizeSigCanvas(p));
     });
-    window.addEventListener('beforeprint', markEmptyDates);
+    window.addEventListener('beforeprint', preparePrintDates);
+    window.addEventListener('afterprint', () => {
+        restorePrintDates();
+        const p = document.getElementById('cmr-page');
+        p.classList.remove('print-blank');
+        p.classList.remove('data-only');
+        p.classList.remove('hide-f14');
+    });
+    applyScanBg();
     markEmptyDates();
 
     // PWA service worker
@@ -1034,13 +1066,127 @@ function markEmptyDates() {
     });
 }
 
+// Android's print rendering draws the native date-picker arrow no matter
+// what CSS says — swap date inputs to plain text for the duration of the
+// print and restore them afterwards.
+let printDateBackup = [];
+
+function preparePrintDates() {
+    markEmptyDates();
+    if(printDateBackup.length) return;
+    document.querySelectorAll('#cmr-page input[type="date"]').forEach(el => {
+        printDateBackup.push({ el, val: el.value });
+        const v = el.value;
+        try { el.type = 'text'; } catch(e) {}
+        el.value = v ? v.split('-').reverse().join('.') : '';
+    });
+}
+
+function restorePrintDates() {
+    printDateBackup.forEach(({el, val}) => {
+        try { el.type = 'date'; } catch(e) {}
+        el.value = val;
+    });
+    printDateBackup = [];
+}
+
 function printCMR() {
     if(!validateForm()) {
         toast('Uzupełnij wymagane pola przed drukowaniem', 'error');
         return;
     }
-    markEmptyDates();
+    preparePrintDates();
     window.print();
+    setTimeout(restorePrintDates, 2000);
+}
+
+function printBlankCMR() {
+    const page = document.getElementById('cmr-page');
+    page.classList.add('print-blank');
+    preparePrintDates();
+    window.print();
+    setTimeout(() => { page.classList.remove('print-blank'); restorePrintDates(); }, 2000);
+}
+
+// Print ONLY the entered data, positioned to land in the boxes of a
+// pre-printed paper CMR fed into the printer.
+function printDataOnly() {
+    if(!validateForm()) {
+        toast('Uzupełnij wymagane pola przed drukowaniem', 'error');
+        return;
+    }
+    const page = document.getElementById('cmr-page');
+    page.classList.add('data-only');
+    // the standard reservations text is pre-printed on the paper form —
+    // print field 14 only if the user changed it
+    const f14 = document.getElementById('inp_f14');
+    if(f14 && f14.value.trim() === DEFAULT_F14) page.classList.add('hide-f14');
+    preparePrintDates();
+    window.print();
+    setTimeout(() => {
+        page.classList.remove('data-only');
+        page.classList.remove('hide-f14');
+        restorePrintDates();
+    }, 2000);
+}
+
+// ============================================================
+// SCAN BACKDROP (align fields to your own paper CMR)
+// ============================================================
+function onScanFile(input) {
+    const f = input.files && input.files[0];
+    if(!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+            // downscale so it fits in localStorage
+            const W = 1240;
+            const c = document.createElement('canvas');
+            c.width = W;
+            c.height = Math.round(W * img.height / img.width);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            try {
+                localStorage.setItem('cmr_scan', c.toDataURL('image/jpeg', 0.8));
+                localStorage.setItem('cmr_scan_show', '1');
+                applyScanBg();
+                nav('cmr', document.querySelector('.nav-item'));
+                toast('✅ Podkład wgrany — dopasuj pola w edytorze do podkładu', 'success', 5000);
+            } catch(e) {
+                toast('❌ Skan jest za duży — zrób mniejsze zdjęcie', 'error', 4000);
+            }
+        };
+        img.src = rd.result;
+    };
+    rd.readAsDataURL(f);
+    input.value = '';
+}
+
+function toggleScanBg() {
+    if(!localStorage.getItem('cmr_scan')) { toast('Najpierw wgraj skan CMR', 'error'); return; }
+    const show = localStorage.getItem('cmr_scan_show') === '1';
+    localStorage.setItem('cmr_scan_show', show ? '0' : '1');
+    applyScanBg();
+}
+
+function removeScan() {
+    if(!localStorage.getItem('cmr_scan')) return;
+    if(!confirm('Usunąć wgrany podkład skanu CMR?')) return;
+    localStorage.removeItem('cmr_scan');
+    localStorage.removeItem('cmr_scan_show');
+    applyScanBg();
+    toast('Podkład usunięty', 'info');
+}
+
+function applyScanBg() {
+    const el = document.getElementById('scan-bg');
+    if(!el) return;
+    const src = localStorage.getItem('cmr_scan');
+    const show = src && localStorage.getItem('cmr_scan_show') === '1';
+    if(show) { el.src = src; el.style.display = 'block'; }
+    else el.style.display = 'none';
+    const btn = document.getElementById('scan-toggle-btn');
+    if(btn) btn.textContent = show ? '🙈 Ukryj podkład' : '👁 Pokaż podkład na ekranie';
 }
 
 // ============================================================
@@ -1061,7 +1207,7 @@ async function generatePDF() {
     }
 
     const page = document.getElementById('cmr-page');
-    const toHide = document.querySelectorAll('.quick-pick, .geo-btn, .sig-ui-btn');
+    const toHide = document.querySelectorAll('.quick-pick, .geo-btn, .sig-ui-btn, #scan-bg');
 
     // Save transform state
     const hadTransform = page.style.transform;
@@ -2084,7 +2230,7 @@ function anchorIcons() {
 // ============================================================
 // Bumped on every deploy; compared against the copy on the server, so the
 // check reflects what is actually RUNNING, not what the server last served.
-const APP_BUILD = 'B-2026-07-02-02';
+const APP_BUILD = 'B-2026-07-02-03';
 let lastUpdateCheck = 0;
 
 async function checkAppUpdate(silent = true) {
