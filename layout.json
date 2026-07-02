@@ -1,0 +1,1011 @@
+{
+  "rev": 1782993316173,
+  "layout": {
+    "ver": 5,
+    "positions": {
+      "le-1": {
+        "top": "10.3mm",
+        "left": "9mm",
+        "width": "89.6mm",
+        "height": "5.3mm"
+      },
+      "le-2": {
+        "top": "8.3mm",
+        "left": "99mm",
+        "width": "12.5mm",
+        "height": "5.5mm"
+      },
+      "le-3": {
+        "top": "10.3mm",
+        "left": "113.8mm",
+        "width": "91.1mm",
+        "height": "4.1mm"
+      },
+      "le-4": {
+        "top": "15mm",
+        "left": "8mm",
+        "width": "194mm",
+        "height": ""
+      },
+      "le-5": {
+        "top": "15mm",
+        "left": "8mm",
+        "width": "",
+        "height": "275mm"
+      },
+      "le-6": {
+        "top": "15mm",
+        "left": "202mm",
+        "width": "",
+        "height": "275mm"
+      },
+      "le-7": {
+        "top": "290mm",
+        "left": "8mm",
+        "width": "194mm",
+        "height": ""
+      },
+      "le-8": {
+        "top": "15mm",
+        "left": "105mm",
+        "width": "",
+        "height": "126mm"
+      },
+      "le-9": {
+        "top": "32mm",
+        "left": "105mm",
+        "width": "97mm",
+        "height": ""
+      },
+      "le-10": {
+        "top": "42mm",
+        "left": "8mm",
+        "width": "97.3mm",
+        "height": ""
+      },
+      "le-11": {
+        "top": "51mm",
+        "left": "105mm",
+        "width": "97mm",
+        "height": ""
+      },
+      "le-12": {
+        "top": "69mm",
+        "left": "8mm",
+        "width": "97mm",
+        "height": ""
+      },
+      "le-13": {
+        "top": "77mm",
+        "left": "105mm",
+        "width": "97mm",
+        "height": ""
+      },
+      "le-14": {
+        "top": "105mm",
+        "left": "8mm",
+        "width": "97mm",
+        "height": ""
+      },
+      "le-15": {
+        "top": "141mm",
+        "left": "8mm",
+        "width": "97mm",
+        "height": ""
+      },
+      "le-16": {
+        "top": "141mm",
+        "left": "105mm",
+        "width": "97mm",
+        "height": ""
+      },
+      "le-17": {
+        "top": "15mm",
+        "left": "102.5mm",
+        "width": "0mm",
+        "height": "0mm"
+      },
+      "le-18": {
+        "top": "16mm",
+        "left": "9mm",
+        "width": "66.4mm",
+        "height": "2mm"
+      },
+      "le-19": {
+        "top": "19mm",
+        "left": "9mm",
+        "width": "93mm",
+        "height": "19.5mm"
+      },
+      "le-20": {
+        "top": "17mm",
+        "left": "90mm",
+        "width": "",
+        "height": ""
+      },
+      "le-21": {
+        "top": "17mm",
+        "left": "83mm",
+        "width": "",
+        "height": ""
+      },
+      "le-22": {
+        "top": "43mm",
+        "left": "99mm",
+        "width": "",
+        "height": ""
+      },
+      "le-23": {
+        "top": "43mm",
+        "left": "9mm",
+        "width": "70.2mm",
+        "height": "2.3mm"
+      },
+      "le-24": {
+        "top": "46mm",
+        "left": "9mm",
+        "width": "93mm",
+        "height": "20mm"
+      },
+      "le-25": {
+        "top": "44mm",
+        "left": "90mm",
+        "width": "",
+        "height": ""
+      },
+      "le-26": {
+        "top": "44mm",
+        "left": "83mm",
+        "width": "",
+        "height": ""
+      },
+      "le-27": {
+        "top": "70mm",
+        "left": "99mm",
+        "width": "",
+        "height": ""
+      },
+      "le-28": {
+        "top": "70mm",
+        "left": "9mm",
+        "width": "69.1mm",
+        "height": "4.7mm"
+      },
+      "le-29": {
+        "top": "75mm",
+        "left": "9mm",
+        "width": "93.5mm",
+        "height": "27mm"
+      },
+      "le-30": {
+        "top": "71mm",
+        "left": "90mm",
+        "width": "",
+        "height": ""
+      },
+      "le-31": {
+        "top": "71mm",
+        "left": "65mm",
+        "width": "",
+        "height": ""
+      },
+      "le-32": {
+        "top": "106mm",
+        "left": "99mm",
+        "width": "",
+        "height": ""
+      },
+      "le-33": {
+        "top": "106mm",
+        "left": "9mm",
+        "width": "85mm",
+        "height": ""
+      },
+      "le-34": {
+        "top": "111mm",
+        "left": "9mm",
+        "width": "93mm",
+        "height": "27mm"
+      },
+      "le-35": {
+        "top": "107mm",
+        "left": "90mm",
+        "width": "",
+        "height": ""
+      },
+      "le-36": {
+        "top": "107mm",
+        "left": "65mm",
+        "width": "",
+        "height": ""
+      },
+      "le-37": {
+        "top": "16mm",
+        "left": "196mm",
+        "width": "",
+        "height": ""
+      },
+      "le-38": {
+        "top": "16mm",
+        "left": "106mm",
+        "width": "71.2mm",
+        "height": "2.6mm"
+      },
+      "le-39": {
+        "top": "19.5mm",
+        "left": "106mm",
+        "width": "92.5mm",
+        "height": "10.5mm"
+      },
+      "le-40": {
+        "top": "33mm",
+        "left": "196mm",
+        "width": "",
+        "height": ""
+      },
+      "le-41": {
+        "top": "33mm",
+        "left": "106mm",
+        "width": "64.9mm",
+        "height": "2.3mm"
+      },
+      "le-42": {
+        "top": "36mm",
+        "left": "106mm",
+        "width": "93mm",
+        "height": "13mm"
+      },
+      "le-43": {
+        "top": "52mm",
+        "left": "196mm",
+        "width": "",
+        "height": ""
+      },
+      "le-44": {
+        "top": "52mm",
+        "left": "106mm",
+        "width": "70.7mm",
+        "height": "2mm"
+      },
+      "le-45": {
+        "top": "56mm",
+        "left": "106mm",
+        "width": "93mm",
+        "height": "19.5mm"
+      },
+      "le-46": {
+        "top": "78mm",
+        "left": "196mm",
+        "width": "",
+        "height": ""
+      },
+      "le-47": {
+        "top": "78mm",
+        "left": "106mm",
+        "width": "95mm",
+        "height": ""
+      },
+      "le-48": {
+        "top": "81mm",
+        "left": "106mm",
+        "width": "91.8mm",
+        "height": "25.9mm"
+      },
+      "le-49": {
+        "top": "114.5mm",
+        "left": "106mm",
+        "width": "",
+        "height": ""
+      },
+      "le-50": {
+        "top": "111.8mm",
+        "left": "143mm",
+        "width": "57mm",
+        "height": "5mm"
+      },
+      "le-51": {
+        "top": "92mm",
+        "left": "196mm",
+        "width": "",
+        "height": ""
+      },
+      "le-52": {
+        "top": "122.2mm",
+        "left": "106mm",
+        "width": "",
+        "height": ""
+      },
+      "le-53": {
+        "top": "119.6mm",
+        "left": "143mm",
+        "width": "57mm",
+        "height": "5mm"
+      },
+      "le-54": {
+        "top": "98mm",
+        "left": "196mm",
+        "width": "",
+        "height": ""
+      },
+      "le-55": {
+        "top": "130.5mm",
+        "left": "106mm",
+        "width": "95mm",
+        "height": "0mm"
+      },
+      "le-56": {
+        "top": "143mm",
+        "left": "153mm",
+        "width": "0mm",
+        "height": "0mm"
+      },
+      "le-57": {
+        "top": "141mm",
+        "left": "155mm",
+        "width": "",
+        "height": "77mm"
+      },
+      "le-58": {
+        "top": "141mm",
+        "left": "178mm",
+        "width": "",
+        "height": "77mm"
+      },
+      "le-59": {
+        "top": "142.3mm",
+        "left": "9.8mm",
+        "width": "77.5mm",
+        "height": "4.5mm"
+      },
+      "le-60": {
+        "top": "142.5mm",
+        "left": "175mm",
+        "width": "0mm",
+        "height": "0mm"
+      },
+      "le-61": {
+        "top": "142.5mm",
+        "left": "156mm",
+        "width": "22.1mm",
+        "height": "6.8mm"
+      },
+      "le-62": {
+        "top": "142.5mm",
+        "left": "198.5mm",
+        "width": "0mm",
+        "height": "0mm"
+      },
+      "le-63": {
+        "top": "142.3mm",
+        "left": "179mm",
+        "width": "",
+        "height": ""
+      },
+      "le-64": {
+        "top": "147mm",
+        "left": "9mm",
+        "width": "143mm",
+        "height": "52.9mm"
+      },
+      "le-65": {
+        "top": "147.5mm",
+        "left": "156mm",
+        "width": "19.7mm",
+        "height": "67.7mm"
+      },
+      "le-66": {
+        "top": "147mm",
+        "left": "179mm",
+        "width": "20.7mm",
+        "height": "68.1mm"
+      },
+      "le-67": {
+        "top": "206mm",
+        "left": "8mm",
+        "width": "147mm",
+        "height": ""
+      },
+      "le-68": {
+        "top": "212mm",
+        "left": "8mm",
+        "width": "147mm",
+        "height": ""
+      },
+      "le-69": {
+        "top": "206mm",
+        "left": "80mm",
+        "width": "",
+        "height": "12mm"
+      },
+      "le-70": {
+        "top": "206mm",
+        "left": "33mm",
+        "width": "",
+        "height": "12mm"
+      },
+      "le-71": {
+        "top": "206mm",
+        "left": "103mm",
+        "width": "",
+        "height": "12mm"
+      },
+      "le-72": {
+        "top": "203.4mm",
+        "left": "39.2mm",
+        "width": "34.5mm",
+        "height": "2.3mm"
+      },
+      "le-73": {
+        "top": "207.9mm",
+        "left": "9mm",
+        "width": "24.2mm",
+        "height": "3.1mm"
+      },
+      "le-74": {
+        "top": "207mm",
+        "left": "34mm",
+        "width": "43.7mm",
+        "height": "2.2mm"
+      },
+      "le-75": {
+        "top": "214.2mm",
+        "left": "9mm",
+        "width": "24mm",
+        "height": "3.7mm"
+      },
+      "le-76": {
+        "top": "213mm",
+        "left": "34mm",
+        "width": "43.7mm",
+        "height": "2mm"
+      },
+      "le-77": {
+        "top": "203.4mm",
+        "left": "111.4mm",
+        "width": "31.9mm",
+        "height": "2.3mm"
+      },
+      "le-78": {
+        "top": "207.9mm",
+        "left": "82mm",
+        "width": "20.5mm",
+        "height": "3.1mm"
+      },
+      "le-79": {
+        "top": "207mm",
+        "left": "104mm",
+        "width": "47.6mm",
+        "height": "2.7mm"
+      },
+      "le-80": {
+        "top": "214.2mm",
+        "left": "82mm",
+        "width": "20.5mm",
+        "height": "3.1mm"
+      },
+      "le-81": {
+        "top": "213mm",
+        "left": "104mm",
+        "width": "49.1mm",
+        "height": "3mm"
+      },
+      "le-82": {
+        "top": "218mm",
+        "left": "8mm",
+        "width": "97mm",
+        "height": ""
+      },
+      "le-83": {
+        "top": "218mm",
+        "left": "105mm",
+        "width": "97mm",
+        "height": ""
+      },
+      "le-84": {
+        "top": "218mm",
+        "left": "105mm",
+        "width": "",
+        "height": "15mm"
+      },
+      "le-85": {
+        "top": "219mm",
+        "left": "99mm",
+        "width": "",
+        "height": ""
+      },
+      "le-86": {
+        "top": "219mm",
+        "left": "9mm",
+        "width": "43.3mm",
+        "height": "2.1mm"
+      },
+      "le-87": {
+        "top": "222mm",
+        "left": "9mm",
+        "width": "93.1mm",
+        "height": "8mm"
+      },
+      "le-88": {
+        "top": "219mm",
+        "left": "196mm",
+        "width": "",
+        "height": ""
+      },
+      "le-89": {
+        "top": "219mm",
+        "left": "106mm",
+        "width": "89.3mm",
+        "height": "2.3mm"
+      },
+      "le-90": {
+        "top": "222mm",
+        "left": "106mm",
+        "width": "93.1mm",
+        "height": "8mm"
+      },
+      "le-91": {
+        "top": "233mm",
+        "left": "8mm",
+        "width": "60mm",
+        "height": ""
+      },
+      "le-92": {
+        "top": "233mm",
+        "left": "68mm",
+        "width": "134mm",
+        "height": ""
+      },
+      "le-93": {
+        "top": "233mm",
+        "left": "68mm",
+        "width": "",
+        "height": "28mm"
+      },
+      "le-94": {
+        "top": "234mm",
+        "left": "73.7mm",
+        "width": "",
+        "height": ""
+      },
+      "le-95": {
+        "top": "234mm",
+        "left": "9mm",
+        "width": "37.2mm",
+        "height": "2.6mm"
+      },
+      "le-96": {
+        "top": "245.1mm",
+        "left": "8mm",
+        "width": "55.9mm",
+        "height": "8.9mm"
+      },
+      "le-97": {
+        "top": "234mm",
+        "left": "199mm",
+        "width": "0mm",
+        "height": "0mm"
+      },
+      "le-98": {
+        "top": "234mm",
+        "left": "69mm",
+        "width": "75mm",
+        "height": "3.2mm"
+      },
+      "le-99": {
+        "top": "238mm",
+        "left": "69mm",
+        "width": "118.4mm",
+        "height": "6mm"
+      },
+      "le-100": {
+        "top": "249mm",
+        "left": "199mm",
+        "width": "0mm",
+        "height": "0mm"
+      },
+      "le-101": {
+        "top": "247mm",
+        "left": "69mm",
+        "width": "67.7mm",
+        "height": "2.2mm"
+      },
+      "le-102": {
+        "top": "252.8mm",
+        "left": "69mm",
+        "width": "32mm",
+        "height": "2.6mm"
+      },
+      "le-103": {
+        "top": "252.8mm",
+        "left": "101mm",
+        "width": "20mm",
+        "height": "5mm"
+      },
+      "le-104": {
+        "top": "252.8mm",
+        "left": "126.5mm",
+        "width": "27.8mm",
+        "height": "2mm"
+      },
+      "le-105": {
+        "top": "252.8mm",
+        "left": "154.5mm",
+        "width": "20mm",
+        "height": "5mm"
+      },
+      "le-106": {
+        "top": "261mm",
+        "left": "8mm",
+        "width": "64mm",
+        "height": ""
+      },
+      "le-107": {
+        "top": "261mm",
+        "left": "72mm",
+        "width": "64mm",
+        "height": ""
+      },
+      "le-108": {
+        "top": "261mm",
+        "left": "136mm",
+        "width": "66mm",
+        "height": ""
+      },
+      "le-109": {
+        "top": "261mm",
+        "left": "72mm",
+        "width": "",
+        "height": "29mm"
+      },
+      "le-110": {
+        "top": "261mm",
+        "left": "136mm",
+        "width": "",
+        "height": "29mm"
+      },
+      "le-111": {
+        "top": "262mm",
+        "left": "9mm",
+        "width": "47.9mm",
+        "height": "2.7mm"
+      },
+      "le-112": {
+        "top": "262mm",
+        "left": "66mm",
+        "width": "",
+        "height": ""
+      },
+      "le-113": {
+        "top": "266mm",
+        "left": "9mm",
+        "width": "17mm",
+        "height": "2.4mm"
+      },
+      "le-114": {
+        "top": "265mm",
+        "left": "28mm",
+        "width": "42mm",
+        "height": "5mm"
+      },
+      "le-115": {
+        "top": "272mm",
+        "left": "9mm",
+        "width": "15.4mm",
+        "height": "2.4mm"
+      },
+      "le-116": {
+        "top": "271mm",
+        "left": "8mm",
+        "width": "64mm",
+        "height": "11mm"
+      },
+      "le-117": {
+        "top": "285mm",
+        "left": "9mm",
+        "width": "10.9mm",
+        "height": "3.1mm"
+      },
+      "le-118": {
+        "top": "283.3mm",
+        "left": "20.3mm",
+        "width": "48mm",
+        "height": "5mm"
+      },
+      "le-119": {
+        "top": "262mm",
+        "left": "130mm",
+        "width": "",
+        "height": ""
+      },
+      "le-120": {
+        "top": "262mm",
+        "left": "72mm",
+        "width": "60.1mm",
+        "height": "2mm"
+      },
+      "le-121": {
+        "top": "267mm",
+        "left": "73mm",
+        "width": "59.9mm",
+        "height": "2mm"
+      },
+      "le-122": {
+        "top": "266mm",
+        "left": "90mm",
+        "width": "42mm",
+        "height": "5mm"
+      },
+      "le-123": {
+        "top": "272mm",
+        "left": "72mm",
+        "width": "62.7mm",
+        "height": "16.5mm"
+      },
+      "le-124": {
+        "top": "262mm",
+        "left": "196mm",
+        "width": "",
+        "height": ""
+      },
+      "le-125": {
+        "top": "262mm",
+        "left": "137mm",
+        "width": "46.1mm",
+        "height": "2mm"
+      },
+      "le-126": {
+        "top": "264mm",
+        "left": "137mm",
+        "width": "61.6mm",
+        "height": "11.2mm"
+      },
+      "le-127": {
+        "top": "279mm",
+        "left": "199mm",
+        "width": "0mm",
+        "height": "0mm"
+      },
+      "le-128": {
+        "top": "279mm",
+        "left": "137mm",
+        "width": "57.3mm",
+        "height": "2mm"
+      },
+      "le-129": {
+        "top": "284.1mm",
+        "left": "136.5mm",
+        "width": "62.9mm",
+        "height": "3.1mm"
+      },
+      "le-130": {
+        "top": "275.9mm",
+        "left": "177.2mm",
+        "width": "22.1mm",
+        "height": "3.5mm"
+      },
+      "le-131": {
+        "top": "279mm",
+        "left": "132mm",
+        "width": "",
+        "height": ""
+      },
+      "cu-2": {
+        "top": "278mm",
+        "left": "136mm",
+        "width": "66mm",
+        "height": ""
+      }
+    },
+    "fonts": {
+      "le-1": "13pt",
+      "le-2": "13.5pt",
+      "le-3": "13pt",
+      "le-17": "6pt",
+      "le-18": "6pt",
+      "le-22": "6pt",
+      "le-23": "6pt",
+      "le-27": "6pt",
+      "le-28": "6pt",
+      "le-32": "6pt",
+      "le-33": "6pt",
+      "le-37": "6pt",
+      "le-38": "6pt",
+      "le-40": "6pt",
+      "le-41": "6pt",
+      "le-43": "6pt",
+      "le-44": "6pt",
+      "le-45": "8pt",
+      "le-47": "6pt",
+      "le-49": "7.5pt",
+      "le-52": "7.5pt",
+      "le-55": "6pt",
+      "le-56": "6pt",
+      "le-59": "6pt",
+      "le-60": "6pt",
+      "le-61": "6pt",
+      "le-62": "6pt",
+      "le-63": "6pt",
+      "le-72": "7pt",
+      "le-73": "7pt",
+      "le-75": "7pt",
+      "le-77": "7pt",
+      "le-78": "7pt",
+      "le-80": "7pt",
+      "le-85": "6pt",
+      "le-86": "7pt",
+      "le-88": "6pt",
+      "le-89": "7pt",
+      "le-94": "6pt",
+      "le-95": "7pt",
+      "le-96": "7pt",
+      "le-97": "6pt",
+      "le-98": "7pt",
+      "le-100": "6pt",
+      "le-101": "7pt",
+      "le-111": "7pt",
+      "le-112": "6pt",
+      "le-114": "8pt",
+      "le-118": "8pt",
+      "le-119": "6pt",
+      "le-120": "7pt",
+      "le-124": "6pt",
+      "le-126": "8pt",
+      "le-127": "6pt",
+      "le-128": "7pt"
+    },
+    "weights": {
+      "le-2": "bold",
+      "le-49": "normal",
+      "le-52": "normal",
+      "le-72": "normal",
+      "le-73": "normal",
+      "le-75": "normal",
+      "le-77": "normal",
+      "le-78": "normal",
+      "le-80": "normal",
+      "le-96": "900",
+      "le-102": "normal",
+      "le-104": "normal",
+      "le-113": "normal",
+      "le-114": "bold",
+      "le-115": "normal",
+      "le-117": "normal",
+      "le-121": "normal",
+      "le-122": "900"
+    },
+    "italics": {},
+    "aligns": {
+      "le-45": "center",
+      "le-55": "left",
+      "le-65": "center",
+      "le-66": "center",
+      "le-72": "center",
+      "le-73": "center",
+      "le-74": "center",
+      "le-75": "center",
+      "le-76": "center",
+      "le-77": "center",
+      "le-78": "center",
+      "le-79": "center",
+      "le-80": "center",
+      "le-81": "center",
+      "le-89": "left",
+      "le-96": "left",
+      "le-103": "center",
+      "le-105": "center",
+      "le-126": "center"
+    },
+    "texts": {
+      "le-1": "LETTRE DE VOITURE INTERNATIONALE",
+      "le-2": "CMR",
+      "le-3": "INTERNATIONAL CONSIGNMENT NOTE",
+      "le-17": "1",
+      "le-18": "Sender (name, address, country) Expéditeur (nom, adresse, pays)",
+      "le-22": "4",
+      "le-23": "Consignee (name, address, country) Destinataire (nom, adresse, pays)",
+      "le-27": "6",
+      "le-28": "Place & Date of taking over the goods (place, country, date).\nLieu et date de la prise en charge des marchandises (lieu, pays, date).",
+      "le-32": "8",
+      "le-33": "Place designated for delivery of goods (place, country).\nLieu prévu pour la livraison des marchandises (lieu, pays).",
+      "le-37": "2",
+      "le-38": "Customs Reference/Status. Référence/designation pour mise en douane",
+      "le-40": "3",
+      "le-41": "Senders/Agent's Reference. Référence de l'expéditeur/de l'agent.",
+      "le-43": "5",
+      "le-44": "Carrier (Name, Address, Country). Transporteur (Nom, Adresse, Pays).",
+      "le-46": "7",
+      "le-47": "Successive carriers. Transporteurs successifs.",
+      "le-49": "TRACTOR / TRACTEUR NR :",
+      "le-52": "TRAILER / REMORQUE NR :",
+      "le-55": "This carriage is subject, notwithstanding any clause to the contrary, to the convention on\nthe contract for the International Carriage of Goods by Road (CMR).\nCe transport est soumis, nonobstant toute clause contraire, à la convention relative\nau contrat de transport international de marchandises par route (CMR).",
+      "le-56": "9",
+      "le-59": "Marks & No; Kind of Packages; Description of Goods*.\nMarques & No; No.et nature des colis; désignation des marchandises*.",
+      "le-60": "10",
+      "le-61": "Gross weight in kg\nPoids brut, kg",
+      "le-62": "11",
+      "le-63": "Volume in m³\nCubage m³",
+      "le-72": "LOADING POINT",
+      "le-73": "PALLETS IN:",
+      "le-75": "PALLETS OUT:",
+      "le-77": "DELIVERY POINT",
+      "le-78": "PALLETS IN:",
+      "le-80": "PALLETS OUT:",
+      "le-85": "12",
+      "le-86": "Carriage Charges. Prix de transport.",
+      "le-88": "13",
+      "le-89": "Senders Instructions for Customs, etc... Instructions de l'expéditeur (optional)",
+      "le-94": "14",
+      "le-95": "Reservations. Réserves.",
+      "le-97": "15",
+      "le-98": "Documents Attached. Documents Annexés (optional)",
+      "le-100": "16",
+      "le-101": "Special Agreements. Conventions particulières (optional).",
+      "le-102": "TEMPERATURE SETTINGS AT:",
+      "le-104": "DEGREES CENTIGRADE",
+      "le-111": "Goods Received. Machandises reçues.",
+      "le-112": "17",
+      "le-113": "PRINT NAME:",
+      "le-115": "SIGNATURE:",
+      "le-117": "DATE:",
+      "le-119": "18",
+      "le-120": "Signature of Carrier/Signature du transporteur.",
+      "le-121": "SEAL NR:",
+      "le-124": "19",
+      "le-125": "Company completing this note. Sociêté émettrice",
+      "le-127": "20",
+      "le-128": "Place and date: signature. Lieu et date: signature"
+    },
+    "customs": [
+      {
+        "id": "cu-2",
+        "type": "h"
+      }
+    ],
+    "hidden": [
+      "le-130"
+    ],
+    "locked": [
+      "le-3",
+      "le-2",
+      "le-1",
+      "le-18",
+      "le-19",
+      "le-17",
+      "le-22",
+      "le-24",
+      "le-23",
+      "le-10",
+      "le-27",
+      "le-29",
+      "le-28",
+      "le-33",
+      "le-32",
+      "le-56",
+      "le-38",
+      "le-41",
+      "le-39",
+      "le-45",
+      "le-55",
+      "le-63",
+      "le-59",
+      "le-48",
+      "le-64",
+      "le-86",
+      "le-77",
+      "le-72",
+      "le-87",
+      "le-90",
+      "le-99",
+      "le-97",
+      "le-100",
+      "le-98",
+      "le-105",
+      "le-103",
+      "le-104",
+      "le-117",
+      "le-111",
+      "le-101",
+      "le-102"
+    ]
+  }
+}
