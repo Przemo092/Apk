@@ -747,6 +747,8 @@ www.nolantransport.com</textarea>
         <div id="le-prof-unlocked" style="display:none;">
             <p style="color:#28a745; font-weight:bold; margin:0 0 10px;">✅ Edytor odblokowany na tę sesję</p>
             <button class="btn btn-primary" onclick="launchLEFromProfile()">🔧 Uruchom edytor CMR</button>
+            <button class="btn" style="background:#1976d2; margin-top:8px;" onclick="exportLayoutFile()">⬆️ Pobierz plik układu (layout.json)</button>
+            <p style="font-size:11px; color:#888; margin:6px 0 0;">Wgraj pobrany layout.json do repozytorium na GitHub — wszystkie telefony pobiorą ten układ automatycznie przy następnym otwarciu.</p>
             <button class="btn btn-danger" style="margin-top:8px;" onclick="resetFullLayout()">↩ Przywróć domyślny układ</button>
             <div style="margin-top:14px; border-top:1px solid #eee; padding-top:12px;">
                 <span class="input-label">Zmień kod PIN (4 cyfry):</span>
@@ -905,6 +907,7 @@ window.addEventListener('load', () => {
     if(savedProf) loadProfile();
 
     loadFullLayout();
+    syncRemoteLayout();
     loadDraft();
     updateCarrierDisplay();
     applyDocDefaults();
@@ -2714,6 +2717,44 @@ function applyBoxRow(i) {
     saveFullLayout();
     renderBoxModal();
     toast('✅ Rubryka dopasowana', 'success', 1500);
+}
+
+// ---- Remote layout sync (layout.json in the GitHub repo) ----
+// The official layout lives in layout.json next to index.html. On every
+// start the app checks it; a newer rev replaces the device's local layout,
+// so an update pushed to GitHub reaches every phone automatically.
+async function syncRemoteLayout() {
+    try {
+        const res = await fetch('layout.json?v=' + Date.now(), { cache: 'no-store' });
+        if(!res.ok) return;
+        const remote = await res.json();
+        if(!remote || !remote.rev || !remote.layout) return;
+        const baseRev = parseInt(localStorage.getItem('cmr_layout_baserev') || '0');
+        if(remote.rev <= baseRev) return;
+        const cur = localStorage.getItem('cmr_layout');
+        if(cur) localStorage.setItem('cmr_layout_prev', cur);
+        localStorage.setItem('cmr_layout', JSON.stringify(remote.layout));
+        localStorage.setItem('cmr_layout_baserev', String(remote.rev));
+        location.reload();
+    } catch(e) { /* offline — keep the local layout */ }
+}
+
+function exportLayoutFile() {
+    const raw = localStorage.getItem('cmr_layout');
+    if(!raw) { toast('Brak zapisanego układu — najpierw zmień coś w edytorze', 'error', 4000); return; }
+    let layout;
+    try { layout = JSON.parse(raw); } catch(e) { toast('Błąd odczytu układu', 'error'); return; }
+    const data = { rev: Date.now(), layout };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'layout.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast('⬆️ Wgraj layout.json do repozytorium GitHub (Add file → Upload) — telefony zaktualizują się same', 'info', 7000);
 }
 
 // ---- Save / load / reset ----
