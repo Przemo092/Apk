@@ -201,6 +201,8 @@
             padding: 2px; resize: none; outline: none; z-index: 1; text-align: left;
         }
         .cmr-input.invalid { background: #ffe0e0 !important; box-shadow: 0 0 0 2px #dc3545; }
+        /* no calendar icon on CMR date fields (tapping the field still opens the picker) */
+        #cmr-page input[type="date"]::-webkit-calendar-picker-indicator { display: none; -webkit-appearance: none; }
         /* Chrome autofill paints filled fields pale blue — force our colors */
         .cmr-input:-webkit-autofill,
         .cmr-input:-webkit-autofill:hover,
@@ -378,7 +380,7 @@
     </div>
     <div id="sig-overlay-wrap">
         <canvas id="overlay-sig-canvas"></canvas>
-        <div id="sig-overlay-hint">✍️ Podpisz WEWNĄTRZ niebieskiej ramki — nie wychodź poza obramowanie.<br>Ramka ma kształt pola podpisu na CMR.</div>
+        <div id="sig-overlay-hint">✍️ Podpisz się DUŻYM, wyraźnym ruchem wewnątrz niebieskiej ramki.<br>Podpis sam się przytnie i dopasuje do pola na CMR.</div>
     </div>
     <div style="padding:14px; background:#f0f4f8;">
         <button style="width:100%; background:#28a745; border:none; color:white; padding:16px; border-radius:12px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(40,167,69,0.35);" onclick="confirmOverlaySig()">✓ Dodaj podpis</button>
@@ -473,14 +475,14 @@
             <div class="lbl" style="top:88mm; left:9mm; width:85mm;">Place &amp; Date of taking over the goods (place, country, date).<br>Lieu et date de la prise en charge des marchandises (lieu, pays, date).</div>
             <textarea id="inp_pickup" class="cmr-input" style="top:91mm; left:9mm; width:95mm; height:10mm;"></textarea>
             <div class="quick-pick" style="top:89mm; left:90mm;" onclick="openPicker('pickup')">📂</div>
-            <div class="geo-btn" style="top:89mm; left:65mm;" onclick="getGeo('inp_pickup')" title="Pobierz lokalizację GPS">📍</div>
+            <div class="geo-btn" style="top:89mm; left:83mm;" onclick="getGeo('inp_pickup')" title="Pobierz lokalizację GPS">📍</div>
 
             <!-- FIELD 8: DELIVERY PLACE (103–122mm = 19mm) -->
             <div class="num" style="top:104mm; left:99mm;">8</div>
             <div class="lbl" style="top:104mm; left:9mm; width:85mm;">Place designated for delivery of goods (place, country).<br>Lieu prévu pour la livraison des marchandises (lieu, pays).</div>
             <textarea id="inp_destination" class="cmr-input" style="top:107mm; left:9mm; width:95mm; height:13mm;"></textarea>
             <div class="quick-pick" style="top:105mm; left:90mm;" onclick="openPicker('destination')">📂</div>
-            <div class="geo-btn" style="top:105mm; left:65mm;" onclick="getGeo('inp_destination')">📍</div>
+            <div class="geo-btn" style="top:105mm; left:83mm;" onclick="getGeo('inp_destination')">📍</div>
 
             <!-- FIELD 2 (15–38mm = 23mm) -->
             <div class="num" style="top:16mm; left:196mm;">2</div>
@@ -1085,6 +1087,12 @@ async function generatePDF() {
                 doc.querySelectorAll('#cmr-page .cmr-input').forEach(el => {
                     el.style.background = 'transparent';
                     el.style.boxShadow = 'none';
+                });
+                // date inputs -> plain text so no calendar icon can render
+                doc.querySelectorAll('#cmr-page input[type="date"]').forEach(el => {
+                    const v = el.value;
+                    el.type = 'text';
+                    el.value = v ? v.split('-').reverse().join('.') : '';
                 });
             }
         });
@@ -1761,36 +1769,19 @@ function openOverlaySig(targetId, label) {
     document.getElementById('sig-overlay').classList.add('open');
 
     requestAnimationFrame(() => {
+        // Full-screen drawing area — big and comfortable; on confirm the
+        // signature is trimmed to its ink and contain-fitted to the box
         const canvas = overlaySigPad.canvas;
         const wrap = document.getElementById('sig-overlay-wrap');
-
-        // Compute destination aspect ratio so canvas matches where sig will be pasted
-        const destPad = (targetId !== 'profile-sig-canvas') ? sigPads[targetId] : null;
-        let destAspect = 4.0;
-        if(destPad) {
-            resizeSigCanvas(destPad);
-            if(destPad.canvas.width > 0 && destPad.canvas.height > 0)
-                destAspect = destPad.canvas.width / destPad.canvas.height;
-        }
-
-        const PAD = 24;
-        const availW = wrap.clientWidth  - PAD * 2;
-        const availH = wrap.clientHeight - PAD * 2;
-
-        let boxW = availW;
-        let boxH = boxW / destAspect;
-        if(boxH < 90) { boxH = 90; boxW = boxH * destAspect; }
-        if(boxW > availW) { boxW = availW; boxH = boxW / destAspect; }
-        if(boxH > availH) { boxH = availH; boxW = boxH * destAspect; }
-
-        const left = Math.round((wrap.clientWidth  - boxW) / 2);
-        const top  = Math.round((wrap.clientHeight - boxH) / 2);
+        const PAD = 10;
+        const boxW = wrap.clientWidth  - PAD * 2;
+        const boxH = wrap.clientHeight - PAD * 2;
         const DPR  = window.devicePixelRatio || 1;
 
         canvas.style.width  = boxW + 'px';
         canvas.style.height = boxH + 'px';
-        canvas.style.left   = left + 'px';
-        canvas.style.top    = top  + 'px';
+        canvas.style.left   = PAD + 'px';
+        canvas.style.top    = PAD + 'px';
         canvas.width  = Math.round(boxW * DPR);
         canvas.height = Math.round(boxH * DPR);
         overlaySigPad.ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1807,10 +1798,41 @@ function clearOverlaySig() {
     overlaySigPad.ctx.clearRect(0, 0, c.width, c.height);
 }
 
+function trimOverlaySig() {
+    // crop the drawn ink's bounding box so a full-screen scribble becomes
+    // a tight signature that fills the destination box nicely
+    const c = overlaySigPad.canvas, ctx = overlaySigPad.ctx;
+    const w = c.width, h = c.height;
+    if(!w || !h) return null;
+    const data = ctx.getImageData(0, 0, w, h).data;
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+    for(let y = 0; y < h; y++) {
+        const row = y * w;
+        for(let x = 0; x < w; x++) {
+            if(data[(row + x) * 4 + 3] > 10) {
+                if(x < minX) minX = x;
+                if(x > maxX) maxX = x;
+                if(y < minY) minY = y;
+                if(y > maxY) maxY = y;
+            }
+        }
+    }
+    if(maxX < 0) return null;
+    const m = Math.round(Math.min(w, h) * 0.03) + 4;
+    minX = Math.max(0, minX - m); minY = Math.max(0, minY - m);
+    maxX = Math.min(w - 1, maxX + m); maxY = Math.min(h - 1, maxY + m);
+    const tw = maxX - minX + 1, th = maxY - minY + 1;
+    const t = document.createElement('canvas');
+    t.width = tw; t.height = th;
+    t.getContext('2d').drawImage(c, minX, minY, tw, th, 0, 0, tw, th);
+    return t;
+}
+
 function confirmOverlaySig() {
     if(!overlaySigTarget) { closeOverlaySig(); return; }
 
-    const src = overlaySigPad.canvas;
+    const src = trimOverlaySig();
+    if(!src) { toast('Najpierw podpisz się w ramce!', 'error'); return; }
 
     function containCopy(dstPad) {
         resizeSigCanvas(dstPad);
@@ -2149,6 +2171,8 @@ function initPinchZoom() {
 
     wrap.addEventListener('touchstart', (e) => {
         if(leActive) return;
+        // never hijack touches meant for signature drawing
+        if(e.target.tagName === 'CANVAS' || e.target.closest && e.target.closest('.sig-box')) return;
         if(e.touches.length === 2) {
             e.preventDefault();
             const a = e.touches[0], b = e.touches[1];
