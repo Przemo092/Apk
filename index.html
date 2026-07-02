@@ -759,7 +759,8 @@ www.nolantransport.com</textarea>
     </div>
 
     <div class="card" style="background:#e3f2fd; border:1px solid #bbdefb;">
-        <h3 style="margin-top:0; border-bottom:1px solid #bbdefb; padding-bottom:10px; color:#0d47a1;">💾 Kopia Zapasowa</h3>
+        <h3 style="margin-top:0; border-bottom:1px solid #bbdefb; padding-bottom:10px; color:#0d47a1;">💾 Kopia Zapasowa i aktualizacje</h3>
+        <button class="btn btn-success" style="margin-bottom:10px;" onclick="checkAppUpdate(false)">🔄 Sprawdź aktualizację aplikacji</button>
         <button class="btn" style="background:#1976d2;" onclick="exportData()">⬇️ Pobierz Backup</button>
         <div style="margin-top:15px; border-top:1px solid #bbdefb; padding-top:10px;">
             <span class="input-label">Wgraj Backup:</span>
@@ -908,6 +909,7 @@ window.addEventListener('load', () => {
 
     loadFullLayout();
     syncRemoteLayout();
+    scheduleUpdateChecks();
     loadDraft();
     updateCarrierDisplay();
     applyDocDefaults();
@@ -1891,6 +1893,57 @@ function newCMR() {
     const status = document.getElementById('draft-status');
     if(status) status.textContent = '';
     toast('✅ Nowy formularz gotowy!', 'success');
+}
+
+// ============================================================
+// APP AUTO-UPDATE — defeat stale caches on phones
+// ============================================================
+let lastUpdateCheck = 0;
+
+async function checkAppUpdate(silent = true) {
+    try {
+        const res = await fetch('index.html', { cache: 'no-store' });
+        if(!res.ok) { if(!silent) toast('Nie udało się sprawdzić — brak internetu?', 'error'); return; }
+        const txt = await res.text();
+        let h = 0;
+        for(let i = 0; i < txt.length; i += 61) h = ((h * 31) + txt.charCodeAt(i)) | 0;
+        const cur = String(h);
+        const prev = localStorage.getItem('cmr_app_hash');
+        if(prev === null) {
+            localStorage.setItem('cmr_app_hash', cur);
+            if(!silent) toast('✅ Masz najnowszą wersję aplikacji', 'success');
+            return;
+        }
+        if(prev === cur) {
+            if(!silent) toast('✅ Masz najnowszą wersję aplikacji', 'success');
+            return;
+        }
+        // New version on the server — purge caches and reload into it,
+        // at most once per session to avoid reload loops
+        localStorage.setItem('cmr_app_hash', cur);
+        if(sessionStorage.getItem('cmr_app_updated')) return;
+        sessionStorage.setItem('cmr_app_updated', '1');
+        if(window.caches) {
+            try {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(k => caches.delete(k)));
+            } catch(e) {}
+        }
+        toast('🔄 Pobieranie nowej wersji aplikacji…', 'info', 2500);
+        setTimeout(() => location.reload(), 900);
+    } catch(e) {
+        if(!silent) toast('Nie udało się sprawdzić — brak internetu?', 'error');
+    }
+}
+
+function scheduleUpdateChecks() {
+    checkAppUpdate(true);
+    document.addEventListener('visibilitychange', () => {
+        if(document.visibilityState === 'visible' && Date.now() - lastUpdateCheck > 5 * 60 * 1000) {
+            lastUpdateCheck = Date.now();
+            checkAppUpdate(true);
+        }
+    });
 }
 
 // ============================================================
