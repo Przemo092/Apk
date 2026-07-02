@@ -127,7 +127,7 @@
             font-weight: bold; cursor: pointer; color: white;
         }
         #sig-overlay-wrap { flex: 1; position: relative; background: #ccd4de; overflow: hidden; }
-        #overlay-sig-canvas { position: absolute; display: block; cursor: crosshair; touch-action: none; background: white; box-shadow: 0 4px 24px rgba(0,0,0,0.22); border-radius: 6px; }
+        #overlay-sig-canvas { position: absolute; display: block; cursor: crosshair; touch-action: none; background: white; box-shadow: 0 4px 24px rgba(0,0,0,0.22); border-radius: 6px; border: 3px dashed #0056b3; box-sizing: border-box; }
         #sig-overlay-hint {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
             color: #ccc; font-size: 15px; pointer-events: none; user-select: none; white-space: nowrap;
@@ -378,7 +378,7 @@
     </div>
     <div id="sig-overlay-wrap">
         <canvas id="overlay-sig-canvas"></canvas>
-        <div id="sig-overlay-hint">✍️ Podpisz tutaj</div>
+        <div id="sig-overlay-hint">✍️ Podpisz WEWNĄTRZ niebieskiej ramki — nie wychodź poza obramowanie.<br>Ramka ma kształt pola podpisu na CMR.</div>
     </div>
     <div style="padding:14px; background:#f0f4f8;">
         <button style="width:100%; background:#28a745; border:none; color:white; padding:16px; border-radius:12px; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(40,167,69,0.35);" onclick="confirmOverlaySig()">✓ Dodaj podpis</button>
@@ -735,6 +735,8 @@ www.nolantransport.com</textarea>
             <button class="btn btn-success" onclick="saveProfileSig()">💾 Zapisz</button>
             <button class="btn btn-danger" onclick="clearP()">Wyczyść</button>
         </div>
+        <input type="file" id="sigimg-file" accept="image/*" style="display:none;" onchange="onSigImgFile(this)">
+        <button class="btn" style="background:#5a3fd6; margin-top:10px;" onclick="document.getElementById('sigimg-file').click()">🖼 Wgraj podpis z pliku (PNG/JPG)</button>
     </div>
 
     <div class="card" style="border:2px solid #0056b3;">
@@ -831,6 +833,20 @@ www.nolantransport.com</textarea>
     </div>
 </div>
 
+<!-- SIGNATURE IMAGE CROP MODAL -->
+<div id="sigimg-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:9700; justify-content:center; align-items:center;">
+    <div style="background:white; border-radius:16px; padding:16px; width:min(94vw,440px); box-shadow:0 8px 40px rgba(0,0,0,0.3);">
+        <h3 style="margin:0 0 6px; color:#1a2b40;">🖼 Kadrowanie podpisu</h3>
+        <p style="font-size:11px; color:#666; margin:0 0 8px;">Przeciągnij podpis palcem, dopasuj wielkość suwakiem — ramka ma kształt pola podpisu na CMR.</p>
+        <canvas id="sigimg-canvas" width="680" height="200" style="width:100%; border:3px dashed #0056b3; border-radius:8px; touch-action:none; background:white; display:block; box-sizing:border-box;"></canvas>
+        <input id="sigimg-scale" type="range" min="0.2" max="3" step="0.01" value="1" style="width:100%; margin:12px 0;" oninput="sigImgScale(parseFloat(this.value))">
+        <div style="display:flex; gap:8px;">
+            <button class="btn btn-success" style="margin:0;" onclick="saveSigImg()">💾 Zapisz podpis</button>
+            <button class="btn btn-gray" style="margin:0;" onclick="document.getElementById('sigimg-modal').style.display='none'">Anuluj</button>
+        </div>
+    </div>
+</div>
+
 <!-- ZOOM RESET (shown while CMR preview is pinch-zoomed) -->
 <button id="zoom-reset-btn" onclick="resetViewZoom()" style="display:none; position:fixed; right:14px; bottom:86px; z-index:8000; width:auto; padding:10px 16px; border:none; border-radius:24px; background:rgba(26,43,64,0.88); color:white; font-size:13px; font-weight:bold; box-shadow:0 4px 14px rgba(0,0,0,0.35); cursor:pointer;">🔍 100%</button>
 
@@ -907,7 +923,10 @@ window.addEventListener('load', () => {
     const savedProf = localStorage.getItem('cmr_prof');
     if(savedProf) loadProfile();
 
+    initSigImgDrag();
+    captureIconAnchors();
     loadFullLayout();
+    anchorIcons();
     syncRemoteLayout();
     scheduleUpdateChecks();
     loadDraft();
@@ -1709,8 +1728,13 @@ function pasteMySig() {
     if(!pad) return;
     const img = new Image();
     img.onload = () => {
-        pad.ctx.clearRect(0, 0, pad.canvas.width, pad.canvas.height);
-        pad.ctx.drawImage(img, 0, 0, pad.canvas.width, pad.canvas.height);
+        resizeSigCanvas(pad);
+        const dst = pad.canvas;
+        pad.ctx.clearRect(0, 0, dst.width, dst.height);
+        // contain: keep the signature's proportions, never stretch it
+        const scale = Math.min(dst.width / img.width, dst.height / img.height);
+        const dw = img.width * scale, dh = img.height * scale;
+        pad.ctx.drawImage(img, (dst.width - dw) / 2, (dst.height - dh) / 2, dw, dh);
         scheduleDraftSave();
     };
     img.src = s;
@@ -1893,6 +1917,135 @@ function newCMR() {
     const status = document.getElementById('draft-status');
     if(status) status.textContent = '';
     toast('✅ Nowy formularz gotowy!', 'success');
+}
+
+// ============================================================
+// SIGNATURE FROM IMAGE FILE (drag & scale crop)
+// ============================================================
+let sigImgObj = null, sigImgBase = 1, sigImgMul = 1, sigImgX = 0, sigImgY = 0, sigImgDrag = null;
+
+function onSigImgFile(input) {
+    const f = input.files && input.files[0];
+    if(!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+            sigImgObj = img;
+            const cv = document.getElementById('sigimg-canvas');
+            sigImgBase = Math.min(cv.width / img.width, cv.height / img.height);
+            sigImgMul = 1;
+            sigImgX = (cv.width  - img.width  * sigImgBase) / 2;
+            sigImgY = (cv.height - img.height * sigImgBase) / 2;
+            document.getElementById('sigimg-scale').value = 1;
+            document.getElementById('sigimg-modal').style.display = 'flex';
+            drawSigImg();
+        };
+        img.src = rd.result;
+    };
+    rd.readAsDataURL(f);
+    input.value = '';
+}
+
+function drawSigImg() {
+    const cv = document.getElementById('sigimg-canvas');
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    if(!sigImgObj) return;
+    const s = sigImgBase * sigImgMul;
+    ctx.drawImage(sigImgObj, sigImgX, sigImgY, sigImgObj.width * s, sigImgObj.height * s);
+}
+
+function sigImgScale(mul) {
+    if(!sigImgObj) return;
+    const cv = document.getElementById('sigimg-canvas');
+    const s0 = sigImgBase * sigImgMul, s1 = sigImgBase * mul;
+    // scale around the canvas centre so the signature stays in view
+    const cx = (cv.width / 2 - sigImgX) / s0, cy = (cv.height / 2 - sigImgY) / s0;
+    sigImgMul = mul;
+    sigImgX = cv.width / 2  - cx * s1;
+    sigImgY = cv.height / 2 - cy * s1;
+    drawSigImg();
+}
+
+function initSigImgDrag() {
+    const cv = document.getElementById('sigimg-canvas');
+    if(!cv) return;
+    const down = (e) => {
+        if(!sigImgObj) return;
+        const t = e.touches ? e.touches[0] : e;
+        sigImgDrag = { x0: t.clientX, y0: t.clientY, ix: sigImgX, iy: sigImgY };
+        e.preventDefault();
+    };
+    const move = (e) => {
+        if(!sigImgDrag) return;
+        const t = e.touches ? e.touches[0] : e;
+        const r = cv.getBoundingClientRect();
+        const k = cv.width / r.width;   // css px -> canvas px
+        sigImgX = sigImgDrag.ix + (t.clientX - sigImgDrag.x0) * k;
+        sigImgY = sigImgDrag.iy + (t.clientY - sigImgDrag.y0) * k;
+        drawSigImg();
+        e.preventDefault();
+    };
+    const up = () => { sigImgDrag = null; };
+    cv.addEventListener('touchstart', down, {passive: false});
+    cv.addEventListener('mousedown', down);
+    cv.addEventListener('touchmove', move, {passive: false});
+    document.addEventListener('mousemove', move);
+    cv.addEventListener('touchend', up);
+    document.addEventListener('mouseup', up);
+}
+
+function saveSigImg() {
+    if(!sigImgObj) { toast('Najpierw wybierz plik z podpisem', 'error'); return; }
+    const cv = document.getElementById('sigimg-canvas');
+    const url = cv.toDataURL('image/png');
+    localStorage.setItem('cmr_sig', url);
+    const pad = sigPads['profile-sig-canvas'];
+    if(pad) {
+        const img = new Image();
+        img.onload = () => {
+            resizeSigCanvas(pad);
+            pad.ctx.clearRect(0, 0, pad.canvas.width, pad.canvas.height);
+            const scale = Math.min(pad.canvas.width / img.width, pad.canvas.height / img.height);
+            const dw = img.width * scale, dh = img.height * scale;
+            pad.ctx.drawImage(img, (pad.canvas.width - dw) / 2, (pad.canvas.height - dh) / 2, dw, dh);
+        };
+        img.src = url;
+    }
+    document.getElementById('sigimg-modal').style.display = 'none';
+    toast('✅ Podpis z pliku zapisany — użyj "Mój Podpis" w polu 18', 'success');
+}
+
+// ============================================================
+// ICON ANCHORING — pickers/GPS icons always stick to their fields
+// ============================================================
+let iconAnchors = [];
+
+function captureIconAnchors() {
+    // must run BEFORE any saved layout is applied: offsets are taken from
+    // the HTML defaults where icons and fields are aligned by design
+    document.querySelectorAll('#cmr-page .quick-pick, #cmr-page .geo-btn').forEach(icon => {
+        const oc = icon.getAttribute('onclick') || '';
+        let target = null, m;
+        if((m = oc.match(/openPicker\('(\w+)'\)/)))              target = 'inp_' + m[1];
+        if((m = oc.match(/(?:getGeo|findNearbyBiz)\('(\w+)'\)/))) target = m[1];
+        const t = target && document.getElementById(target);
+        if(!t) return;
+        iconAnchors.push({
+            icon,
+            target: t,
+            dx: (parseFloat(icon.style.left) || 0) - (parseFloat(t.style.left) || 0),
+            dy: (parseFloat(icon.style.top)  || 0) - (parseFloat(t.style.top)  || 0)
+        });
+    });
+}
+
+function anchorIcons() {
+    iconAnchors.forEach(a => {
+        a.icon.style.left = ((parseFloat(a.target.style.left) || 0) + a.dx).toFixed(1) + 'mm';
+        a.icon.style.top  = ((parseFloat(a.target.style.top)  || 0) + a.dy).toFixed(1) + 'mm';
+    });
 }
 
 // ============================================================
@@ -2241,6 +2394,7 @@ function deactivateLEMode() {
     const bm = document.getElementById('box-modal');
     if(bm) bm.style.display = 'none';
     removeLERHs();
+    anchorIcons();
     saveFullLayout();
     updateCarrierDisplay();
     toast('Układ zapisany!', 'success');
@@ -2766,6 +2920,7 @@ function applyBoxRow(i) {
     if(!wIn.disabled && W >= 5)  applyBoxWidth(b, W);
     if(!hIn.disabled && H >= 4)  applyBoxHeight(b, H);
     updateCarrierDisplay();
+    anchorIcons();
     if(leActive) injectLERHs();
     saveFullLayout();
     renderBoxModal();
