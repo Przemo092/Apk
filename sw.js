@@ -1,6 +1,6 @@
 // Service Worker (PWA) — network-first so updates reach the phone
 // immediately; the cache is only a fallback for offline use.
-const CACHE = 'nowa-cmr-pwa-v2';
+const CACHE = 'nowa-cmr-pwa-v4';
 const ASSETS = [
   './',
   './index.html',

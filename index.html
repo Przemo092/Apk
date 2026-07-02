@@ -651,7 +651,7 @@ www.nolantransport.com</textarea>
             <div class="num" style="top:279mm; left:196mm;">20</div>
             <div style="position:absolute; top:278mm; left:137mm; width:64mm; border-top:1px solid var(--cmr-ink);"></div>
             <div class="lbl" style="top:279mm; left:137mm;">Place and date: signature. Lieu et date: signature</div>
-            <input id="inp_place20" class="cmr-input" placeholder="Place" style="top:283mm; left:137mm; width:30mm; height:8mm; background:transparent;">
+            <input id="inp_place20" class="cmr-input" style="top:283mm; left:137mm; width:30mm; height:8mm; background:transparent;">
             <input id="inp_date20" class="cmr-input" type="date" style="top:283mm; left:167mm; width:34mm; height:8mm; background:transparent;">
             <div class="geo-btn" style="top:278mm; left:132mm;" onclick="getGeo('inp_place20')">📍</div>
         </div>
@@ -803,6 +803,7 @@ www.nolantransport.com</textarea>
 
     <div style="height:20px;"></div>
     <button class="btn btn-primary" onclick="saveProfile()">💾 ZAPISZ USTAWIENIA</button>
+    <div id="build-tag" style="text-align:center; font-size:11px; color:#aaa; margin-top:14px;"></div>
     <br><br>
 </div>
 
@@ -987,10 +988,22 @@ window.addEventListener('load', () => {
     applyScanBg();
     markEmptyDates();
 
-    // PWA service worker
+    // PWA service worker — auto-reload once when a new version takes control
     if('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        navigator.serviceWorker.register('sw.js?v=' + APP_BUILD).then(reg => {
+            if(reg && reg.update) reg.update();
+        }).catch(() => {});
+        let swReloaded = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if(swReloaded) return;
+            swReloaded = true;
+            location.reload();
+        });
     }
+
+    // show the running build number in the profile footer
+    const bt = document.getElementById('build-tag');
+    if(bt) bt.textContent = 'Wersja aplikacji: ' + APP_BUILD;
 });
 
 // ============================================================
@@ -2230,7 +2243,7 @@ function anchorIcons() {
 // ============================================================
 // Bumped on every deploy; compared against the copy on the server, so the
 // check reflects what is actually RUNNING, not what the server last served.
-const APP_BUILD = 'B-2026-07-02-03';
+const APP_BUILD = 'B-2026-07-02-04';
 let lastUpdateCheck = 0;
 
 async function checkAppUpdate(silent = true) {
