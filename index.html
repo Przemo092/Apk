@@ -201,6 +201,14 @@
             padding: 2px; resize: none; outline: none; z-index: 1; text-align: left;
         }
         .cmr-input.invalid { background: #ffe0e0 !important; box-shadow: 0 0 0 2px #dc3545; }
+        /* Chrome autofill paints filled fields pale blue — force our colors */
+        .cmr-input:-webkit-autofill,
+        .cmr-input:-webkit-autofill:hover,
+        .cmr-input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
+            -webkit-text-fill-color: black !important;
+            transition: background-color 999999s ease-out;
+        }
 
         /* QUICK-PICK / GEO BUTTONS */
         .quick-pick {
@@ -275,7 +283,11 @@
         .le-num-in { width:100%; border:1px solid #ccc; border-radius:6px; padding:5px 4px; font-size:13px; box-sizing:border-box; text-align:center; }
         .le-sm-btn { border:none; border-radius:6px; padding:6px 11px; cursor:pointer; font-size:13px; font-weight:bold; background:#6c757d; color:white; }
         /* No highlight mode for PDF */
-        #cmr-page.no-hl .cmr-input { background: transparent !important; }
+        #cmr-page.no-hl .cmr-input { background: transparent !important; box-shadow: none !important; }
+        #cmr-page.no-hl .cmr-input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 1000px white inset !important;
+            -webkit-text-fill-color: black !important;
+        }
         /* Empty date fields must not print the dd.mm.rrrr placeholder */
         #cmr-page.no-hl input.empty-date { visibility: hidden !important; }
 
@@ -322,7 +334,11 @@
                 transform: none !important; margin: 0 !important;
                 box-shadow: none; border: none; position: absolute; top: 0; left: 0;
             }
-            .cmr-input { background: transparent !important; border: none !important; }
+            .cmr-input { background: transparent !important; border: none !important; box-shadow: none !important; }
+            .cmr-input:-webkit-autofill {
+                -webkit-box-shadow: 0 0 0 1000px white inset !important;
+                -webkit-text-fill-color: black !important;
+            }
             input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
             input.empty-date { visibility: hidden !important; }
             * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -402,6 +418,8 @@
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
                 <button class="le-filter-btn" style="background:#28a745;" onclick="openBoxModal()">📐 Wymiary rubryk (mm)</button>
+                <button class="le-filter-btn" style="background:#5a3fd6;" onclick="addLELine('h')">➕ Linia ─</button>
+                <button class="le-filter-btn" style="background:#5a3fd6;" onclick="addLELine('v')">➕ Linia │</button>
                 <span style="margin-left:auto; display:flex; gap:5px; align-items:center;">
                     <span style="font-size:11px; color:#0056b3;">Zoom:</span>
                     <button class="le-sm-btn" onclick="setLEZoom(0.8)">−</button>
@@ -624,7 +642,8 @@ www.nolantransport.com</textarea>
     <h2>🕒 Archiwum Tras</h2>
     <div class="controls" style="margin-bottom:15px;">
         <p style="font-size:12px; color:#666; margin:0 0 10px;">Kliknij "Załaduj", aby przywrócić trasę do formularza CMR.</p>
-        <button class="btn btn-danger" style="margin-top:0;" onclick="clearHistory()">🗑️ Wyczyść całą historię</button>
+        <button class="btn" style="background:#1976d2; margin-top:0;" onclick="exportHistoryCSV()">📊 Eksport CSV (Excel)</button>
+        <button class="btn btn-danger" style="margin-top:8px;" onclick="clearHistory()">🗑️ Wyczyść całą historię</button>
     </div>
     <div id="history-list"></div>
 </div>
@@ -696,6 +715,13 @@ www.nolantransport.com</textarea>
         </label>
         <span class="input-label">Domyślna miejscowość podpisu (pole 20):</span>
         <input id="profile_place20" class="app-input" placeholder="np. New Ross">
+        <span class="input-label">Zasięg szukania firm 🏢 (GPS):</span>
+        <select id="profile_bizrange" class="app-input">
+            <option value="500">500 m</option>
+            <option value="1000">1 km</option>
+            <option value="2000">2 km</option>
+            <option value="5000" selected>5 km</option>
+        </select>
     </div>
 
     <div class="card">
@@ -722,6 +748,11 @@ www.nolantransport.com</textarea>
             <p style="color:#28a745; font-weight:bold; margin:0 0 10px;">✅ Edytor odblokowany na tę sesję</p>
             <button class="btn btn-primary" onclick="launchLEFromProfile()">🔧 Uruchom edytor CMR</button>
             <button class="btn btn-danger" style="margin-top:8px;" onclick="resetFullLayout()">↩ Przywróć domyślny układ</button>
+            <div style="margin-top:14px; border-top:1px solid #eee; padding-top:12px;">
+                <span class="input-label">Zmień kod PIN (4 cyfry):</span>
+                <input id="le-new-pin" type="password" inputmode="numeric" maxlength="4" class="app-input" placeholder="Nowy kod" style="text-align:center; letter-spacing:6px;">
+                <button class="btn btn-gray" onclick="changePin()">🔑 Zapisz nowy kod</button>
+            </div>
         </div>
     </div>
 
@@ -744,6 +775,7 @@ www.nolantransport.com</textarea>
     <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
         <span id="le-tb-type" style="font-size:12px; font-weight:bold; color:#0056b3; flex:1;"></span>
         <button class="le-sm-btn" id="le-lock-btn" onclick="toggleLELock()">🔓 Zablokuj</button>
+        <button class="le-sm-btn" style="background:#b02a37;" onclick="deleteLE()" title="Usuń element">🗑</button>
         <button class="le-sm-btn" style="background:#dc3545;" onclick="deselectLE()">✕</button>
     </div>
     <div style="font-size:9px; color:#999; margin-bottom:8px;">📏 Wymiary w mm — dokładnie tyle, ile będzie na wydruku A4</div>
@@ -753,14 +785,18 @@ www.nolantransport.com</textarea>
         <div id="le-w-row"><div style="font-size:9px;color:#888;margin-bottom:3px;">Szer. (mm)</div><input id="le-width" type="number" step="0.5" class="le-num-in" oninput="applyLETBPos()"></div>
         <div id="le-h-row"><div style="font-size:9px;color:#888;margin-bottom:3px;">Wys. (mm)</div><input id="le-height" type="number" step="0.5" class="le-num-in" oninput="applyLETBPos()"></div>
     </div>
-    <div id="le-font-row" style="display:none; align-items:center; gap:8px; margin-bottom:8px;">
+    <div id="le-font-row" style="display:none; align-items:center; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
         <span style="font-size:11px;color:#555;">Czcionka:</span>
         <button class="le-sm-btn" onclick="changeLEFont(-0.5)">−</button>
         <span id="le-font-val" style="font-size:13px;font-weight:bold;min-width:36px;text-align:center;"></span>
         <span style="font-size:11px;color:#888;">pt</span>
         <button class="le-sm-btn" onclick="changeLEFont(+0.5)">+</button>
-        <button class="le-sm-btn" id="le-bold-btn" style="font-weight:900; margin-left:6px;" onclick="toggleLEBold()">B</button>
+        <button class="le-sm-btn" id="le-bold-btn" style="font-weight:900; margin-left:4px;" onclick="toggleLEBold()">B</button>
         <button class="le-sm-btn" id="le-italic-btn" style="font-style:italic; font-family:serif;" onclick="toggleLEItalic()">I</button>
+        <span style="width:6px;"></span>
+        <button class="le-sm-btn" id="le-al-left"   onclick="setLEAlign('left')"   title="Do lewej">⬅</button>
+        <button class="le-sm-btn" id="le-al-center" onclick="setLEAlign('center')" title="Wyśrodkuj">↔</button>
+        <button class="le-sm-btn" id="le-al-right"  onclick="setLEAlign('right')"  title="Do prawej">➡</button>
     </div>
     <div id="le-text-row" style="display:none;">
         <div style="font-size:9px;color:#888;margin-bottom:3px;">Tekst:</div>
@@ -855,6 +891,13 @@ window.addEventListener('load', () => {
     setupSignaturePad('profile-sig-canvas');
     setupOverlaySigPad();
     initPinchZoom();
+    // Chrome autofill would paint filled fields pale blue (visible in print);
+    // skip datalist-driven fields so their suggestions keep working
+    document.querySelectorAll('.cmr-input').forEach(el => {
+        if(!el.hasAttribute('list')) el.setAttribute('autocomplete', 'off');
+        el.setAttribute('autocorrect', 'off');
+        el.setAttribute('spellcheck', 'false');
+    });
     tagLEElements();
     initLEHandlers();
 
@@ -1012,7 +1055,14 @@ async function generatePDF() {
             useCORS: true,
             logging: false,
             backgroundColor: '#ffffff',
-            allowTaint: false
+            allowTaint: false,
+            onclone: (doc) => {
+                // strip any residual field backgrounds (autofill blue etc.)
+                doc.querySelectorAll('#cmr-page .cmr-input').forEach(el => {
+                    el.style.background = 'transparent';
+                    el.style.boxShadow = 'none';
+                });
+            }
         });
 
         const imgData = canvasEl.toDataURL('image/jpeg', 0.93);
@@ -1134,7 +1184,7 @@ function findNearbyBiz(targetId) {
 
 async function searchBizAround(lat, lon, targetId) {
     toast('🏢 Szukanie firm w pobliżu…', 'info', 3000);
-    const R = 600;
+    const R = parseInt(JSON.parse(localStorage.getItem('cmr_prof') || '{}').bizR || '5000');
     const q = `[out:json][timeout:15];(` +
         `node(around:${R},${lat},${lon})[name][office];` +
         `node(around:${R},${lat},${lon})[name][shop];` +
@@ -1167,8 +1217,8 @@ async function searchBizAround(lat, lon, targetId) {
             items.push({ name: t.name, addr, lat: la, lon: lo, dist: Math.round(distM(lat, lon, la, lo)) });
         });
         items.sort((a, b) => a.dist - b.dist);
-        if(!items.length) { toast('Nie znaleziono firm w promieniu 600 m', 'error', 4000); return; }
-        showBizList(items.slice(0, 25), targetId);
+        if(!items.length) { toast('Nie znaleziono firm w promieniu ' + (R >= 1000 ? (R/1000) + ' km' : R + ' m'), 'error', 4000); return; }
+        showBizList(items.slice(0, 30), targetId);
     } catch(err) {
         console.error('Overpass error:', err);
         toast('❌ Błąd wyszukiwania — sprawdź internet i spróbuj ponownie', 'error', 4000);
@@ -1178,10 +1228,11 @@ async function searchBizAround(lat, lon, targetId) {
 function showBizList(items, targetId) {
     const l = document.getElementById('modal-list');
     l.innerHTML = '';
-    items.forEach(it => {
+    items.forEach((it, i) => {
         const d = document.createElement('div');
         d.className = 'modal-item';
-        d.innerHTML = `<b>${escapeHtml(it.name)}</b> <small style="color:#0056b3;">· ${it.dist} m</small><br>` +
+        const dist = it.dist >= 1000 ? (it.dist / 1000).toFixed(1) + ' km' : it.dist + ' m';
+        d.innerHTML = `<b>${i + 1}. ${escapeHtml(it.name)}</b> <small style="color:#0056b3;">· ${dist}</small><br>` +
             `<small style="color:#666; white-space:pre-line;">${escapeHtml(it.addr || '(adres zostanie pobrany z mapy)')}</small>`;
         d.onclick = () => pickBiz(it, targetId);
         l.appendChild(d);
@@ -1215,6 +1266,27 @@ async function pickBiz(item, targetId) {
 // ============================================================
 // HISTORY
 // ============================================================
+function exportHistoryCSV() {
+    const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    if(!hist.length) { toast('Archiwum jest puste', 'error'); return; }
+    const cols = ['date','inp_sender','inp_consignee','inp_pickup','inp_destination','inp_tractor','inp_trailer','inp_goods','inp_weight','inp_pal_lin','inp_pal_lout','inp_pal_din','inp_pal_dout'];
+    const head = ['Data','Nadawca','Odbiorca','Załadunek','Dostawa','Ciągnik','Naczepa','Towar','Waga kg','Pal.IN zał.','Pal.OUT zał.','Pal.IN dost.','Pal.OUT dost.'];
+    const esc = v => '"' + String(v ?? '').replace(/"/g, '""').replace(/\r?\n/g, ' | ') + '"';
+    const rows = [head.map(esc).join(';')].concat(
+        hist.map(h => cols.map(c => esc(h[c])).join(';'))
+    );
+    const blob = new Blob(['\ufeff' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cmr_archiwum_' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast('✅ Plik CSV pobrany — otwórz w Excelu', 'success');
+}
+
 function repeatLastRoute() {
     const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
     if(!hist.length) { toast('Archiwum jest puste — najpierw zapisz trasę', 'error'); return; }
@@ -1431,7 +1503,8 @@ function saveProfile() {
         tr:       document.getElementById('profile_tr').value,
         trl:      document.getElementById('profile_trl').value,
         autodate: document.getElementById('profile_autodate').checked,
-        place20:  document.getElementById('profile_place20').value
+        place20:  document.getElementById('profile_place20').value,
+        bizR:     document.getElementById('profile_bizrange').value
     };
     localStorage.setItem('cmr_prof', JSON.stringify(d));
     updateCMRFromProfile(d);
@@ -1448,6 +1521,7 @@ function loadProfile() {
     if(d.trl)     document.getElementById('profile_trl').value = d.trl;
     if(d.autodate) document.getElementById('profile_autodate').checked = true;
     if(d.place20) document.getElementById('profile_place20').value = d.place20;
+    if(d.bizR)    document.getElementById('profile_bizrange').value = d.bizR;
     updateCMRFromProfile(d);
 }
 
@@ -1974,6 +2048,7 @@ let leSelected   = null;
 let leDrag       = null;
 let leRHs        = [];
 let leLockedIds  = new Set();
+let leHiddenIds  = new Set();
 
 function getPageScale() {
     const t = getComputedStyle(document.getElementById('cmr-page')).transform;
@@ -1997,37 +2072,74 @@ function requestLEMode() {
     }
 }
 
-function checkLEPin() {
-    const val = document.getElementById('le-pin-input').value.trim();
-    if(val === '1221') {
-        leUnlocked = true;
-        document.getElementById('le-pin-modal').style.display = 'none';
-        const pl = document.getElementById('le-prof-locked');
-        const pu = document.getElementById('le-prof-unlocked');
-        if(pl) pl.style.display = 'none';
-        if(pu) pu.style.display = 'block';
-        if(!confirm('Uruchomić zaawansowany edytor CMR?\n\nBędziesz mógł przesuwać i edytować WSZYSTKIE elementy: linie, napisy, pola, podpisy, czcionki.')) return;
-        activateLEMode();
-    } else {
-        toast('Nieprawidłowy kod!', 'error');
-        document.getElementById('le-pin-input').value = '';
+// PIN storage: factory code 1221, changeable in Profile. Three wrong
+// attempts lock entry for 5 minutes.
+function getPin() { return localStorage.getItem('cmr_pin') || '1221'; }
+
+function pinLockedLeftMs() {
+    return Math.max(0, parseInt(localStorage.getItem('cmr_pin_lock') || '0') - Date.now());
+}
+
+function verifyPin(val) {
+    const left = pinLockedLeftMs();
+    if(left > 0) {
+        toast('🔒 Zablokowane po 3 błędnych próbach. Spróbuj za ' + Math.ceil(left / 60000) + ' min.', 'error', 4500);
+        return false;
     }
+    if(val === getPin()) {
+        localStorage.removeItem('cmr_pin_tries');
+        return true;
+    }
+    const tries = parseInt(localStorage.getItem('cmr_pin_tries') || '0') + 1;
+    if(tries >= 3) {
+        localStorage.setItem('cmr_pin_lock', String(Date.now() + 5 * 60 * 1000));
+        localStorage.removeItem('cmr_pin_tries');
+        toast('🔒 3 błędne próby — wejście zablokowane na 5 minut!', 'error', 5000);
+    } else {
+        localStorage.setItem('cmr_pin_tries', String(tries));
+        toast('Nieprawidłowy kod! Pozostałe próby: ' + (3 - tries), 'error');
+    }
+    return false;
+}
+
+function markLEUnlocked() {
+    leUnlocked = true;
+    const pl = document.getElementById('le-prof-locked');
+    const pu = document.getElementById('le-prof-unlocked');
+    if(pl) pl.style.display = 'none';
+    if(pu) pu.style.display = 'block';
+}
+
+function checkLEPin() {
+    const inp = document.getElementById('le-pin-input');
+    const ok = verifyPin(inp.value.trim());
+    inp.value = '';
+    if(!ok) return;
+    document.getElementById('le-pin-modal').style.display = 'none';
+    markLEUnlocked();
+    if(!confirm('Uruchomić zaawansowany edytor CMR?\n\nBędziesz mógł przesuwać i edytować WSZYSTKIE elementy: linie, napisy, pola, podpisy, czcionki.')) return;
+    activateLEMode();
 }
 
 function unlockLEFromProfile() {
     const inp = document.getElementById('le-prof-pin');
-    const val = inp ? inp.value.trim() : '';
-    if(val === '1221') {
-        leUnlocked = true;
-        const pl = document.getElementById('le-prof-locked');
-        const pu = document.getElementById('le-prof-unlocked');
-        if(pl) pl.style.display = 'none';
-        if(pu) pu.style.display = 'block';
-        toast('Edytor odblokowany!', 'success');
-    } else {
-        toast('Nieprawidłowy kod!', 'error');
-        if(inp) inp.value = '';
-    }
+    const ok = verifyPin(inp ? inp.value.trim() : '');
+    if(inp) inp.value = '';
+    if(!ok) return;
+    markLEUnlocked();
+    toast('Edytor odblokowany!', 'success');
+}
+
+function changePin() {
+    if(!leUnlocked) { toast('Najpierw odblokuj edytor', 'error'); return; }
+    const inp = document.getElementById('le-new-pin');
+    const v = inp ? inp.value.trim() : '';
+    if(!/^\d{4}$/.test(v)) { toast('Kod musi mieć dokładnie 4 cyfry', 'error'); return; }
+    localStorage.setItem('cmr_pin', v);
+    localStorage.removeItem('cmr_pin_tries');
+    localStorage.removeItem('cmr_pin_lock');
+    if(inp) inp.value = '';
+    toast('✅ Nowy kod PIN zapisany!', 'success');
 }
 
 function launchLEFromProfile() {
@@ -2241,6 +2353,18 @@ function updateLEStyleBtns(el) {
     const ib = document.getElementById('le-italic-btn');
     if(bb) bb.style.background = parseInt(cs.fontWeight) >= 600 ? '#0056b3' : '#6c757d';
     if(ib) ib.style.background = cs.fontStyle === 'italic'      ? '#0056b3' : '#6c757d';
+    const al = cs.textAlign;
+    [['le-al-left','left'], ['le-al-center','center'], ['le-al-right','right']].forEach(([id, v]) => {
+        const b = document.getElementById(id);
+        if(b) b.style.background = (al === v || (v === 'left' && (al === 'start' || al === ''))) ? '#0056b3' : '#6c757d';
+    });
+}
+
+function setLEAlign(a) {
+    if(!leSelected) return;
+    leSelected.style.textAlign = a;
+    updateLEStyleBtns(leSelected);
+    saveFullLayout();
 }
 
 function toggleLELock() {
@@ -2301,6 +2425,7 @@ function injectLERHs() {
     if(leFilter.sigs)   sel.push('.sig-box');
     if(!sel.length) return;
     page.querySelectorAll(sel.join(', ')).forEach(el => {
+        if(el.style.display === 'none') return;
         const rh = document.createElement('div');
         rh.className = 'le-rh';
         updateLERHPos(el, rh);
@@ -2595,7 +2720,7 @@ const LE_LAYOUT_VER = 5;
 function saveFullLayout() {
     const page = document.getElementById('cmr-page');
     if(!page) return;
-    const positions = {}, fonts = {}, weights = {}, italics = {}, texts = {};
+    const positions = {}, fonts = {}, weights = {}, italics = {}, aligns = {}, texts = {}, customs = [];
     page.querySelectorAll('[data-le-id]').forEach(el => {
         const id = el.dataset.leId;
         positions[id] = {
@@ -2607,9 +2732,14 @@ function saveFullLayout() {
         if(el.style.fontSize)   fonts[id]   = el.style.fontSize;
         if(el.style.fontWeight) weights[id] = el.style.fontWeight;
         if(el.style.fontStyle)  italics[id] = el.style.fontStyle;
+        if(el.style.textAlign)  aligns[id]  = el.style.textAlign;
         if(el.classList.contains('lbl') || el.classList.contains('num')) texts[id] = el.innerText;
+        if(el.dataset.leCustom) customs.push({id, type: el.dataset.leCustom});
     });
-    localStorage.setItem('cmr_layout', JSON.stringify({ver: LE_LAYOUT_VER, positions, fonts, weights, italics, texts, locked: [...leLockedIds]}));
+    localStorage.setItem('cmr_layout', JSON.stringify({
+        ver: LE_LAYOUT_VER, positions, fonts, weights, italics, aligns, texts,
+        customs, hidden: [...leHiddenIds], locked: [...leLockedIds]
+    }));
 }
 
 function loadFullLayout() {
@@ -2621,10 +2751,16 @@ function loadFullLayout() {
             localStorage.removeItem('cmr_layout');
             return;
         }
-        const {positions={}, fonts={}, weights={}, italics={}, texts={}, locked=[]} = data;
+        const {positions={}, fonts={}, weights={}, italics={}, aligns={}, texts={}, customs=[], hidden=[], locked=[]} = data;
         leLockedIds = new Set(locked);
+        leHiddenIds = new Set(hidden);
         const page = document.getElementById('cmr-page');
         if(!page) return;
+        // re-create user-added lines before applying geometry
+        customs.forEach(c => {
+            const p = positions[c.id] || {};
+            addLELine(c.type, c.id, p);
+        });
         page.querySelectorAll('[data-le-id]').forEach(el => {
             const id = el.dataset.leId;
             const p  = positions[id];
@@ -2637,9 +2773,11 @@ function loadFullLayout() {
             if(fonts[id])   el.style.fontSize   = fonts[id];
             if(weights[id]) el.style.fontWeight = weights[id];
             if(italics[id]) el.style.fontStyle  = italics[id];
+            if(aligns[id])  el.style.textAlign  = aligns[id];
             if(texts[id] !== undefined && (el.classList.contains('lbl') || el.classList.contains('num'))) {
                 el.innerText = texts[id];
             }
+            if(leHiddenIds.has(id)) el.style.display = 'none';
             if(leLockedIds.has(id)) el.classList.add('le-locked');
         });
     } catch(e) { console.error('Layout load error:', e); }
@@ -2662,6 +2800,19 @@ function resetFullLayout() {
 }
 
 // ---- Init event handlers ----
+function attachLEHandlers(el) {
+    const onDown = (e) => {
+        if(!leActive) return;
+        if(e.target.tagName === 'BUTTON' || e.target.tagName === 'CANVAS') return;
+        e.preventDefault();
+        selectLE(el);
+        const lid = el.dataset.leId;
+        if(!(lid && leLockedIds.has(lid))) startLEDrag(e, el, 'move');
+    };
+    el.addEventListener('touchstart', onDown, {passive: false});
+    el.addEventListener('mousedown', onDown);
+}
+
 function initLEHandlers() {
     document.addEventListener('touchmove', onLEMove, {passive: false});
     document.addEventListener('mousemove', onLEMove);
@@ -2670,25 +2821,52 @@ function initLEHandlers() {
 
     const page = document.getElementById('cmr-page');
     if(!page) return;
+    page.querySelectorAll('.line-h, .line-v, .lbl, .num, .cmr-input, .sig-box').forEach(attachLEHandlers);
+}
 
-    page.querySelectorAll('.line-h, .line-v, .lbl, .num, .cmr-input, .sig-box').forEach(el => {
-        el.addEventListener('touchstart', (e) => {
-            if(!leActive) return;
-            if(e.target.tagName === 'BUTTON' || e.target.tagName === 'CANVAS') return;
-            e.preventDefault();
-            selectLE(el);
-            const lid = el.dataset.leId;
-            if(!(lid && leLockedIds.has(lid))) startLEDrag(e, el, 'move');
-        }, {passive: false});
-        el.addEventListener('mousedown', (e) => {
-            if(!leActive) return;
-            if(e.target.tagName === 'BUTTON' || e.target.tagName === 'CANVAS') return;
-            e.preventDefault();
-            selectLE(el);
-            const lid = el.dataset.leId;
-            if(!(lid && leLockedIds.has(lid))) startLEDrag(e, el, 'move');
-        });
-    });
+// ---- Custom lines (add) and element removal ----
+let leCustomN = 0;
+
+function addLELine(type, id, geom) {
+    const page = document.getElementById('cmr-page');
+    const el = document.createElement('div');
+    el.className = type === 'h' ? 'line-h' : 'line-v';
+    el.dataset.leCustom = type;
+    el.dataset.leId = id || ('cu-' + (++leCustomN));
+    if(!id) {
+        if(type === 'h') { el.style.top = '150mm'; el.style.left = '60mm'; el.style.width = '60mm'; }
+        else             { el.style.top = '130mm'; el.style.left = '100mm'; el.style.height = '40mm'; }
+    } else {
+        const n = parseInt(id.slice(3));
+        if(n > leCustomN) leCustomN = n;
+        if(geom) { el.style.top = geom.top; el.style.left = geom.left; if(geom.width) el.style.width = geom.width; if(geom.height) el.style.height = geom.height; }
+    }
+    page.appendChild(el);
+    attachLEHandlers(el);
+    if(!id) {
+        if(leActive) injectLERHs();
+        selectLE(el);
+        saveFullLayout();
+        toast('Linia dodana — przeciągnij ją na miejsce', 'success');
+    }
+    return el;
+}
+
+function deleteLE() {
+    if(!leSelected) return;
+    const el = leSelected;
+    if(el.dataset.leCustom) {
+        deselectLE();
+        el.remove();
+    } else {
+        if(!confirm('Usunąć ten element z CMR?\n\n(Przywrócisz go przyciskiem "Reset układu")')) return;
+        leHiddenIds.add(el.dataset.leId);
+        deselectLE();
+        el.style.display = 'none';
+    }
+    if(leActive) injectLERHs();
+    saveFullLayout();
+    toast('Element usunięty', 'info');
 }
 </script>
 </body>
