@@ -341,9 +341,6 @@
             }
             input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
             input.empty-date { visibility: hidden !important; }
-            /* blank-sheet print: keep the grid and Nolan pre-print, hide data */
-            #cmr-page.print-blank .cmr-input { color: transparent !important; -webkit-text-fill-color: transparent !important; }
-            #cmr-page.print-blank .sig-canvas-inner { visibility: hidden !important; }
             * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
@@ -401,15 +398,14 @@
 <div id="view-cmr" class="view active">
     <div class="controls">
         <div class="btn-row">
-            <button class="btn btn-success" onclick="saveCurrentToHistory()" data-i18n="btn_save">💾 ZAPISZ</button>
-            <button class="btn btn-purple" onclick="generatePDF()" data-i18n="btn_pdf">📄 PDF</button>
-            <button class="btn btn-primary" onclick="printCMR()" data-i18n="btn_print">🖨️ DRUK</button>
-            <button class="btn btn-gray" onclick="newCMR()" data-i18n="btn_new">🆕 NOWY</button>
+            <button class="btn btn-success" onclick="saveCurrentToHistory()">💾 ZAPISZ</button>
+            <button class="btn btn-purple" onclick="generatePDF()">📄 PDF</button>
+            <button class="btn btn-primary" onclick="printCMR()">🖨️ DRUK</button>
+            <button class="btn btn-gray" onclick="newCMR()">🆕 NOWY</button>
         </div>
         <div class="btn-row" style="margin-bottom:4px;">
-            <button class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="repeatLastRoute()" data-i18n="btn_last">🔁 Ostatnia trasa</button>
-            <button class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="printBlankCMR()" data-i18n="btn_blank">📄 Pusty druk</button>
-            <button id="layout-edit-btn" class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="requestLEMode()" data-i18n="btn_layout">📐 Edytuj układ</button>
+            <button class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="repeatLastRoute()">🔁 Ostatnia trasa</button>
+            <button id="layout-edit-btn" class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="requestLEMode()">📐 Edytuj układ pól</button>
         </div>
         <div id="layout-bar" style="display:none; background:#e8eeff; border-radius:8px; padding:9px 12px; margin-bottom:8px; flex-direction:column; gap:7px;">
             <div style="font-size:11px; color:#0056b3;">✏️ Kliknij element = wybierz · przeciągnij = przesuń · niebieski róg = rozmiar. Włącz tylko to, co chcesz edytować:</div>
@@ -513,16 +509,15 @@ www.nolantransport.com</textarea>
             <div class="num" style="top:88mm; left:196mm;">7</div>
             <div class="lbl" style="top:88mm; left:106mm; width:95mm;">Successive carriers.  Transporteurs successifs.</div>
             <textarea id="inp_f7" class="cmr-input" style="top:91mm; left:106mm; width:95mm; height:10mm;"></textarea>
-            <div class="quick-pick" style="top:88.5mm; left:187mm;" onclick="openPicker('f7')" title="Wybierz przewoźnika z bazy">📂</div>
 
             <!-- TRACTOR / TRAILER (103–122mm = 19mm) -->
             <div class="lbl lbl-bold" style="top:104mm; left:106mm;">TRACTOR / TRACTEUR NR :</div>
             <input id="inp_tractor" class="cmr-input" style="top:103mm; left:143mm; width:57mm; height:5mm;">
-            <div class="quick-pick" style="top:102.5mm; left:192mm;" onclick="openPicker('tractor')">🚛</div>
+            <div class="quick-pick" style="top:102mm; left:196mm;" onclick="openPicker('tractor')">🚛</div>
 
             <div class="lbl lbl-bold" style="top:110mm; left:106mm;">TRAILER / REMORQUE NR :</div>
             <input id="inp_trailer" class="cmr-input" style="top:109mm; left:143mm; width:57mm; height:5mm;">
-            <div class="quick-pick" style="top:108.5mm; left:192mm;" onclick="openPicker('trailer')">🚛</div>
+            <div class="quick-pick" style="top:108mm; left:196mm;" onclick="openPicker('trailer')">🚛</div>
 
             <div class="lbl" style="top:115mm; left:106mm; width:95mm; font-size:4.5pt; text-align:justify; line-height:1.15;">This carriage is subject, notwithstanding any clause to the contrary, to the convention on the contract for the International Carriage of Goods by Road (CMR).<br>Ce transport est soumis, nonobstant toute clause contraire, à la convention relative au contrat de transport international de marchandises par route (CMR).</div>
 
@@ -538,7 +533,6 @@ www.nolantransport.com</textarea>
             <div class="lbl" style="top:123mm; left:179mm;">Volume in m³<br>Cubage m³</div>
 
             <textarea id="inp_goods" class="cmr-input" style="top:129mm; left:9mm; width:145mm; height:66mm;"></textarea>
-            <div class="quick-pick" style="top:124mm; left:140mm;" onclick="openPicker('goods')" title="Lista produktów">📦</div>
             <textarea id="inp_weight" class="cmr-input" style="top:129mm; left:156mm; width:21mm; height:66mm; text-align:center;"></textarea>
             <textarea id="inp_vol" class="cmr-input" style="top:129mm; left:179mm; width:22mm; height:66mm; text-align:center;"></textarea>
 
@@ -668,8 +662,6 @@ www.nolantransport.com</textarea>
             <option value="consignee">Odbiorca (pole 4)</option>
             <option value="pickup">Miejsce załadunku (pole 6)</option>
             <option value="destination">Miejsce dostawy (pole 8)</option>
-            <option value="f7">Przewoźnik kolejny (pole 7)</option>
-            <option value="goods">Produkt / towar (pole 9)</option>
         </select>
         <button class="btn btn-primary" onclick="saveToDb('addr')">Zapisz adres</button>
     </div>
@@ -716,23 +708,6 @@ www.nolantransport.com</textarea>
     </div>
 
     <div class="card">
-        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">🌐 Język i samouczek</h3>
-        <span class="input-label">Język aplikacji / App language:</span>
-        <select id="profile_lang" class="app-input" onchange="setAppLang(this.value)">
-            <option value="pl">🇵🇱 Polski</option>
-            <option value="en">🇬🇧 English</option>
-            <option value="lt">🇱🇹 Lietuvių</option>
-            <option value="ro">🇷🇴 Română</option>
-            <option value="sn">🇿🇼 Shona (Zimbabwe)</option>
-        </select>
-        <label style="display:flex; align-items:center; gap:10px; font-size:13px; color:#333; cursor:pointer; margin:10px 0 6px;">
-            <input type="checkbox" id="profile_tutorial" style="width:20px; height:20px; accent-color:#0056b3;" onchange="setTutorial(this.checked)">
-            💡 Tryb nauki — po dotknięciu pola pokazuje, co należy w nim wpisać
-        </label>
-        <p style="font-size:11px; color:#888; margin:6px 0 0;">Sam druk CMR pozostaje po angielsku i francusku — to międzynarodowy standard dokumentu.</p>
-    </div>
-
-    <div class="card">
         <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📄 Ustawienia dokumentu</h3>
         <label style="display:flex; align-items:center; gap:10px; font-size:13px; color:#333; cursor:pointer; margin-bottom:12px;">
             <input type="checkbox" id="profile_autodate" style="width:20px; height:20px; accent-color:#0056b3;">
@@ -760,8 +735,6 @@ www.nolantransport.com</textarea>
             <button class="btn btn-success" onclick="saveProfileSig()">💾 Zapisz</button>
             <button class="btn btn-danger" onclick="clearP()">Wyczyść</button>
         </div>
-        <input type="file" id="sigimg-file" accept="image/*" style="display:none;" onchange="onSigImgFile(this)">
-        <button class="btn" style="background:#5a3fd6; margin-top:10px;" onclick="document.getElementById('sigimg-file').click()">🖼 Wgraj podpis z pliku (PNG/JPG)</button>
     </div>
 
     <div class="card" style="border:2px solid #0056b3;">
@@ -855,38 +828,15 @@ www.nolantransport.com</textarea>
     </div>
 </div>
 
-<!-- SIGNATURE IMAGE CROP MODAL -->
-<div id="sigimg-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:9700; justify-content:center; align-items:center;">
-    <div style="background:white; border-radius:16px; padding:16px; width:min(94vw,440px); box-shadow:0 8px 40px rgba(0,0,0,0.3);">
-        <h3 style="margin:0 0 6px; color:#1a2b40;">🖼 Kadrowanie podpisu</h3>
-        <p style="font-size:11px; color:#666; margin:0 0 8px;">Przeciągnij podpis palcem, dopasuj wielkość suwakiem — ramka to kształt pola podpisu na CMR.</p>
-        <canvas id="sigimg-canvas" width="680" height="200" style="width:100%; border:2px dashed #0056b3; border-radius:8px; touch-action:none; background:white; display:block;"></canvas>
-        <input id="sigimg-scale" type="range" min="0.2" max="3" step="0.01" value="1" style="width:100%; margin:12px 0;" oninput="sigImgScale(parseFloat(this.value))">
-        <div style="display:flex; gap:8px;">
-            <button class="btn btn-success" style="margin:0;" onclick="saveSigImg()">💾 Zapisz podpis</button>
-            <button class="btn btn-gray" style="margin:0;" onclick="document.getElementById('sigimg-modal').style.display='none'">Anuluj</button>
-        </div>
-    </div>
-</div>
-
-<!-- FIELD HELP BUBBLE (tutorial mode) -->
-<div id="help-bubble" style="display:none; position:fixed; left:10px; right:10px; bottom:72px; z-index:8500; background:#1a2b40; color:white; border-radius:12px; padding:12px 14px; box-shadow:0 6px 24px rgba(0,0,0,0.4); font-size:13px; line-height:1.45;">
-    <div style="display:flex; gap:9px; align-items:flex-start;">
-        <span style="font-size:18px;">💡</span>
-        <div style="flex:1;" id="help-bubble-text"></div>
-        <button onclick="document.getElementById('help-bubble').style.display='none'" style="background:none; border:none; color:#9fc4e8; font-size:17px; cursor:pointer; padding:0 2px;">✕</button>
-    </div>
-</div>
-
 <!-- ZOOM RESET (shown while CMR preview is pinch-zoomed) -->
 <button id="zoom-reset-btn" onclick="resetViewZoom()" style="display:none; position:fixed; right:14px; bottom:86px; z-index:8000; width:auto; padding:10px 16px; border:none; border-radius:24px; background:rgba(26,43,64,0.88); color:white; font-size:13px; font-weight:bold; box-shadow:0 4px 14px rgba(0,0,0,0.35); cursor:pointer;">🔍 100%</button>
 
 <!-- NAVIGATION -->
 <div class="nav-bar">
-    <div class="nav-item active" onclick="nav('cmr', this)"><span class="nav-icon">📝</span><span data-i18n="nav_cmr">CMR</span></div>
-    <div class="nav-item" onclick="nav('history', this)"><span class="nav-icon">🕒</span><span data-i18n="nav_hist">Historia</span></div>
-    <div class="nav-item" onclick="nav('db', this)"><span class="nav-icon">📂</span><span data-i18n="nav_db">Baza</span></div>
-    <div class="nav-item" onclick="nav('profile', this)"><span class="nav-icon">👤</span><span data-i18n="nav_prof">Profil</span></div>
+    <div class="nav-item active" onclick="nav('cmr', this)"><span class="nav-icon">📝</span>CMR</div>
+    <div class="nav-item" onclick="nav('history', this)"><span class="nav-icon">🕒</span>Historia</div>
+    <div class="nav-item" onclick="nav('db', this)"><span class="nav-icon">📂</span>Baza</div>
+    <div class="nav-item" onclick="nav('profile', this)"><span class="nav-icon">👤</span>Profil</div>
 </div>
 
 <script>
@@ -921,7 +871,7 @@ const CMR_FIELD_IDS = [
 const KEEP_ON_NEW = ['inp_carrier','inp_tractor','inp_trailer'];
 
 // Required fields for validation
-const REQUIRED_FIELDS = ['inp_sender','inp_consignee','inp_f7'];
+const REQUIRED_FIELDS = ['inp_sender','inp_consignee'];
 
 // ============================================================
 // INIT
@@ -972,26 +922,7 @@ window.addEventListener('load', () => {
         Object.values(sigPads).forEach(p => resizeSigCanvas(p));
     });
     window.addEventListener('beforeprint', markEmptyDates);
-    window.addEventListener('afterprint', () => document.getElementById('cmr-page').classList.remove('print-blank'));
     markEmptyDates();
-    applyLang();
-    initSigImgDrag();
-
-    // temperature fields: auto-append the °C symbol
-    ['inp_temp1', 'inp_temp2'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.addEventListener('change', () => {
-            const v = el.value.trim();
-            if(v && !/°\s*C/i.test(v)) el.value = v.replace(/\s*C$/i, '') + ' °C';
-        });
-    });
-
-    // tutorial mode: show field help on focus
-    document.addEventListener('focusin', (e) => {
-        if(!tutorialOn() || leActive) return;
-        const el = e.target;
-        if(el.classList && el.classList.contains('cmr-input')) showFieldHelp(el);
-    });
 
     // PWA service worker
     if('serviceWorker' in navigator) {
@@ -1473,62 +1404,24 @@ function clearHistory() {
 // ============================================================
 let pkField = null;
 
-// Built-in product list for field 9 — English goes on the CMR, the
-// translation is only shown in the picker.
-const PRODUCT_DEFAULTS = [
-    { en: 'TIMBER',             tr: { pl: 'drewno / tarcica',        lt: 'mediena',                ro: 'cherestea',                 sn: 'matanda' } },
-    { en: 'PIPES',              tr: { pl: 'rury',                    lt: 'vamzdžiai',              ro: 'țevi',                      sn: 'mapaipi' } },
-    { en: 'BUILDING MATERIALS', tr: { pl: 'materiały budowlane',     lt: 'statybinės medžiagos',   ro: 'materiale de construcții',  sn: 'zvinhu zvekuvaka' } },
-    { en: 'CONCRETE ELEMENTS',  tr: { pl: 'elementy betonowe',       lt: 'betono elementai',       ro: 'elemente din beton',        sn: 'kongiri' } },
-    { en: 'PLASTIC FILM',       tr: { pl: 'folia plastikowa',        lt: 'plastikinė plėvelė',     ro: 'folie de plastic',          sn: 'purasitiki' } },
-    { en: 'STEEL COILS',        tr: { pl: 'kręgi stalowe',           lt: 'plieno ritiniai',        ro: 'rulouri de oțel',           sn: 'simbi' } },
-    { en: 'BRICKS',             tr: { pl: 'cegły',                   lt: 'plytos',                 ro: 'cărămizi',                  sn: 'zvidhinha' } },
-    { en: 'CEMENT BAGS',        tr: { pl: 'worki cementu',           lt: 'cemento maišai',         ro: 'saci de ciment',            sn: 'saga resimende' } },
-    { en: 'PALLETS OF GOODS',   tr: { pl: 'palety towaru',           lt: 'prekių padėklai',        ro: 'paleți cu marfă',           sn: 'mapareti' } },
-    { en: 'FURNITURE',          tr: { pl: 'meble',                   lt: 'baldai',                 ro: 'mobilă',                    sn: 'fenicha' } },
-    { en: 'MACHINERY PARTS',    tr: { pl: 'części maszyn',           lt: 'mašinų dalys',           ro: 'piese de utilaje',          sn: 'zvikamu zvemuchina' } },
-    { en: 'PAPER ROLLS',        tr: { pl: 'rolki papieru',           lt: 'popieriaus ritiniai',    ro: 'role de hârtie',            sn: 'mapepa' } },
-    { en: 'FOOD PRODUCTS',      tr: { pl: 'artykuły spożywcze',      lt: 'maisto produktai',       ro: 'produse alimentare',        sn: 'chikafu' } },
-    { en: 'INSULATION MATERIALS', tr: { pl: 'materiały izolacyjne',  lt: 'izoliacinės medžiagos',  ro: 'materiale izolante',        sn: 'zvinhu zvekudzivirira' } }
-];
-
-function pickerInsert(f, val) {
-    const target = document.getElementById('inp_' + f);
-    if(target) {
-        // products append (goods can list several items), the rest replace
-        if(f === 'goods' && target.value.trim()) target.value = target.value.replace(/\s+$/, '') + '\n' + val;
-        else target.value = val;
-        scheduleDraftSave();
-        clearValidation();
-    }
-    closeModal();
-}
-
 function openPicker(f) {
     pkField = f;
     const db = JSON.parse(localStorage.getItem('cmr_db') || '[]');
     const l = document.getElementById('modal-list');
     l.innerHTML = '';
-    const lang = getAppLang();
-    if(f === 'goods') {
-        PRODUCT_DEFAULTS.forEach(p => {
-            const d = document.createElement('div');
-            d.className = 'modal-item';
-            const tr = p.tr[lang] || p.tr.pl;
-            d.innerHTML = `<b>${p.en}</b><br><small style="color:#0056b3;">${escapeHtml(tr)}</small>`;
-            d.onclick = () => pickerInsert(f, p.en);
-            l.appendChild(d);
-        });
-    }
     const flt = db.filter(i => i.tag === f);
-    if(flt.length === 0 && f !== 'goods') {
+    if(flt.length === 0) {
         l.innerHTML = '<div style="text-align:center; padding:20px; color:#999; font-size:13px;">Brak wpisów. Dodaj w zakładce Baza.</div>';
     }
     flt.forEach(i => {
         const d = document.createElement('div');
         d.className = 'modal-item';
-        d.innerHTML = `<b>${escapeHtml(i.name)}</b><br><small style="color:#666; white-space:pre-line;">${escapeHtml(i.val)}</small>`;
-        d.onclick = () => pickerInsert(f, i.val);
+        d.innerHTML = `<b>${i.name}</b><br><small style="color:#666; white-space:pre-line;">${i.val}</small>`;
+        d.onclick = () => {
+            const target = document.getElementById('inp_' + pkField);
+            if(target) { target.value = i.val; scheduleDraftSave(); clearValidation(); }
+            closeModal();
+        };
         l.appendChild(d);
     });
     document.getElementById('modal-overlay').style.display = 'flex';
@@ -1578,7 +1471,7 @@ function loadDb() {
         l.innerHTML = '<li style="color:#999; font-size:13px; justify-content:center;">Baza jest pusta</li>';
         return;
     }
-    const TAG_LABELS = { sender:'Nadawca', consignee:'Odbiorca', pickup:'Załadunek', destination:'Dostawa', tractor:'Ciągnik', trailer:'Naczepa', f7:'Przewoźnik (pole 7)', goods:'Produkt (pole 9)' };
+    const TAG_LABELS = { sender:'Nadawca', consignee:'Odbiorca', pickup:'Załadunek', destination:'Dostawa', tractor:'Ciągnik', trailer:'Naczepa' };
     db.forEach(i => {
         const li = document.createElement('li');
         li.innerHTML = `
@@ -1611,14 +1504,11 @@ function saveProfile() {
         trl:      document.getElementById('profile_trl').value,
         autodate: document.getElementById('profile_autodate').checked,
         place20:  document.getElementById('profile_place20').value,
-        bizR:     document.getElementById('profile_bizrange').value,
-        lang:     document.getElementById('profile_lang').value,
-        tutorial: document.getElementById('profile_tutorial').checked
+        bizR:     document.getElementById('profile_bizrange').value
     };
     localStorage.setItem('cmr_prof', JSON.stringify(d));
     updateCMRFromProfile(d);
     applyDocDefaults();
-    applyLang();
     toast('✅ Profil zapisany!', 'success');
 }
 
@@ -1632,8 +1522,6 @@ function loadProfile() {
     if(d.autodate) document.getElementById('profile_autodate').checked = true;
     if(d.place20) document.getElementById('profile_place20').value = d.place20;
     if(d.bizR)    document.getElementById('profile_bizrange').value = d.bizR;
-    if(d.lang)    document.getElementById('profile_lang').value = d.lang;
-    if(d.tutorial) document.getElementById('profile_tutorial').checked = true;
     updateCMRFromProfile(d);
 }
 
@@ -1996,254 +1884,6 @@ function newCMR() {
     const status = document.getElementById('draft-status');
     if(status) status.textContent = '';
     toast('✅ Nowy formularz gotowy!', 'success');
-}
-
-// ============================================================
-// LANGUAGE & TUTORIAL
-// ============================================================
-const I18N = {
-    pl: { nav_cmr:'CMR', nav_hist:'Historia', nav_db:'Baza', nav_prof:'Profil',
-          btn_save:'💾 ZAPISZ', btn_pdf:'📄 PDF', btn_print:'🖨️ DRUK', btn_new:'🆕 NOWY',
-          btn_last:'🔁 Ostatnia trasa', btn_blank:'📄 Pusty druk', btn_layout:'📐 Edytuj układ' },
-    en: { nav_cmr:'CMR', nav_hist:'History', nav_db:'Database', nav_prof:'Profile',
-          btn_save:'💾 SAVE', btn_pdf:'📄 PDF', btn_print:'🖨️ PRINT', btn_new:'🆕 NEW',
-          btn_last:'🔁 Last route', btn_blank:'📄 Blank print', btn_layout:'📐 Edit layout' },
-    lt: { nav_cmr:'CMR', nav_hist:'Istorija', nav_db:'Bazė', nav_prof:'Profilis',
-          btn_save:'💾 IŠSAUGOTI', btn_pdf:'📄 PDF', btn_print:'🖨️ SPAUSDINTI', btn_new:'🆕 NAUJAS',
-          btn_last:'🔁 Paskutinis maršrutas', btn_blank:'📄 Tuščias lapas', btn_layout:'📐 Redaguoti' },
-    ro: { nav_cmr:'CMR', nav_hist:'Istoric', nav_db:'Bază', nav_prof:'Profil',
-          btn_save:'💾 SALVEAZĂ', btn_pdf:'📄 PDF', btn_print:'🖨️ IMPRIMĂ', btn_new:'🆕 NOU',
-          btn_last:'🔁 Ultima rută', btn_blank:'📄 Foaie goală', btn_layout:'📐 Editare' },
-    sn: { nav_cmr:'CMR', nav_hist:'Nhoroondo', nav_db:'Dhata', nav_prof:'Purofairi',
-          btn_save:'💾 CHENGETA', btn_pdf:'📄 PDF', btn_print:'🖨️ PRINDA', btn_new:'🆕 ITSVA',
-          btn_last:'🔁 Rwendo rwekupedzisira', btn_blank:'📄 Bepa risina', btn_layout:'📐 Gadzirisa' }
-};
-
-function getAppLang() {
-    try { return JSON.parse(localStorage.getItem('cmr_prof') || '{}').lang || 'pl'; } catch(e) { return 'pl'; }
-}
-
-function tutorialOn() {
-    try { return !!JSON.parse(localStorage.getItem('cmr_prof') || '{}').tutorial; } catch(e) { return false; }
-}
-
-function applyLang() {
-    const dict = I18N[getAppLang()] || I18N.pl;
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const k = el.dataset.i18n;
-        if(dict[k]) el.textContent = dict[k];
-    });
-}
-
-function setAppLang(lang) {
-    const d = JSON.parse(localStorage.getItem('cmr_prof') || '{}');
-    d.lang = lang;
-    localStorage.setItem('cmr_prof', JSON.stringify(d));
-    applyLang();
-    toast('🌐 OK', 'success', 1500);
-}
-
-function setTutorial(on) {
-    const d = JSON.parse(localStorage.getItem('cmr_prof') || '{}');
-    d.tutorial = on;
-    localStorage.setItem('cmr_prof', JSON.stringify(d));
-    if(!on) document.getElementById('help-bubble').style.display = 'none';
-    toast(on ? '💡 Tryb nauki włączony — dotknij pola na CMR' : 'Tryb nauki wyłączony', 'info');
-}
-
-// Field-by-field help (tutorial mode). PL and EN full; other app languages
-// fall back to English.
-const FIELD_HELP = (() => {
-    const H = {};
-    const add = (ids, pl, en) => ids.forEach(id => { H[id] = { pl, en }; });
-    add(['inp_sender'],
-        'Pole 1 – NADAWCA: pełna nazwa firmy wysyłającej towar, adres i kraj. Znajdziesz je na zleceniu transportowym lub dokumencie z załadunku. Możesz wybrać z bazy 📂 lub znaleźć firmę po GPS 🏢.',
-        'Box 1 – SENDER: full name, address and country of the company sending the goods. It is on the transport order or the loading note. Pick from database 📂 or find the company by GPS 🏢.');
-    add(['inp_consignee'],
-        'Pole 4 – ODBIORCA: pełna nazwa firmy, do której jedzie towar, adres i kraj. Dane z zlecenia transportowego.',
-        'Box 4 – CONSIGNEE: full name, address and country of the company receiving the goods. Copy from the transport order.');
-    add(['inp_f2'],
-        'Pole 2 – odprawa celna: numer referencyjny odprawy lub status celny (np. MRN, T1). Przy przewozie wewnątrz UE zwykle zostaw puste.',
-        'Box 2 – customs reference/status (e.g. MRN, T1). Usually left empty for transport inside the EU.');
-    add(['inp_f3'],
-        'Pole 3 – referencja nadawcy/agenta: numer zlecenia lub referencja klienta, jeśli jest podana na zleceniu.',
-        'Box 3 – sender\'s/agent\'s reference: order number or customer reference if given on the order.');
-    add(['inp_pickup'],
-        'Pole 6 – miejsce i data ZAŁADUNKU: miejscowość, kraj i data przyjęcia towaru, np. "Dublin, Ireland, 02.07.2026". Przycisk 📍 pobierze lokalizację z GPS.',
-        'Box 6 – place and date of TAKING OVER the goods: town, country and date, e.g. "Dublin, Ireland, 02.07.2026". The 📍 button fills it from GPS.');
-    add(['inp_destination'],
-        'Pole 8 – miejsce DOSTAWY: miejscowość i kraj rozładunku towaru.',
-        'Box 8 – place designated for DELIVERY: town and country where the goods will be unloaded.');
-    add(['inp_carrier'],
-        'Pole 5 – PRZEWOŹNIK: dane firmy transportowej. Wypełnione na stałe danymi Nolan Transport — nie zmieniaj.',
-        'Box 5 – CARRIER: transport company details. Pre-filled with Nolan Transport — do not change.');
-    add(['inp_f7'],
-        'Pole 7 – KOLEJNI PRZEWOŹNICY: nazwa firmy przejmującej towar w dalszej trasie (podwykonawca). Wybierz z listy 📂 lub wpisz ręcznie. To pole jest wymagane!',
-        'Box 7 – SUCCESSIVE CARRIERS: the company taking over the goods for the next leg (subcontractor). Pick from the list 📂 or type it. This field is required!');
-    add(['inp_tractor'],
-        'Numer rejestracyjny CIĄGNIKA. Wybierz 🚛 z bazy lub wpisz ręcznie.',
-        'TRACTOR registration number. Pick 🚛 from the database or type it.');
-    add(['inp_trailer'],
-        'Numer rejestracyjny NACZEPY. Wybierz 🚛 z bazy lub wpisz ręcznie.',
-        'TRAILER registration number. Pick 🚛 from the database or type it.');
-    add(['inp_goods'],
-        'Pole 9 – OPIS TOWARU po angielsku: liczba i rodzaj opakowań oraz nazwa towaru, np. "26 pallets of TIMBER". Wybierz produkt z listy 📦 (pokaże tłumaczenie).',
-        'Box 9 – DESCRIPTION OF GOODS in English: number and kind of packages plus the product, e.g. "26 pallets of TIMBER". Pick a product from the 📦 list.');
-    add(['inp_weight'],
-        'Pole 10 – WAGA BRUTTO w kg, z dokumentu załadunkowego (np. 24000).',
-        'Box 10 – GROSS WEIGHT in kg, from the loading documents (e.g. 24000).');
-    add(['inp_vol'],
-        'Pole 11 – objętość w m³. Wpisz tylko jeśli wymagana.',
-        'Box 11 – volume in m³. Fill only if required.');
-    add(['inp_pal_lin','inp_pal_lout','inp_pal_din','inp_pal_dout'],
-        'PALETY: ile palet przyjąłeś (IN) i oddałeś (OUT) na załadunku (LOADING) i rozładunku (DELIVERY). Zwykle 0, 33 lub 66.',
-        'PALLETS: how many pallets you took (IN) and returned (OUT) at the loading and delivery point. Usually 0, 33 or 66.');
-    add(['inp_f12'],
-        'Pole 12 – koszty przewozu: zwykle zostaw puste, ustala je biuro.',
-        'Box 12 – carriage charges: usually left empty, the office handles it.');
-    add(['inp_f13'],
-        'Pole 13 – instrukcje nadawcy dot. cła: wpisz tylko jeśli podane na zleceniu.',
-        'Box 13 – sender\'s customs instructions: fill only if given on the order.');
-    add(['inp_f14'],
-        'Pole 14 – ZASTRZEŻENIA: standardowy zapis o braku odpowiedzialności już jest. DOPISZ uszkodzenia, braki lub złe opakowanie, jeśli widzisz je przy załadunku!',
-        'Box 14 – RESERVATIONS: the standard no-responsibility note is pre-filled. ADD any damage, shortage or bad packaging you see at loading!');
-    add(['inp_f15'],
-        'Pole 15 – dokumenty załączone do CMR, np. delivery note, specyfikacja.',
-        'Box 15 – documents attached to the CMR, e.g. delivery note, packing list.');
-    add(['inp_temp1','inp_temp2'],
-        'Pole 16 – TEMPERATURA dla chłodni: wpisz samą liczbę (np. 5 albo -20) — symbol °C doda się automatycznie.',
-        'Box 16 – TEMPERATURE for reefer loads: type just the number (e.g. 5 or -20) — the °C symbol is added automatically.');
-    add(['inp_print_name'],
-        'Pole 17 – imię i nazwisko osoby ODBIERAJĄCEJ towar, drukowanymi literami.',
-        'Box 17 – PRINT NAME of the person receiving the goods, in capital letters.');
-    add(['inp_sig1_date'],
-        'Data odbioru towaru przez odbiorcę.',
-        'Date when the consignee received the goods.');
-    add(['inp_seal'],
-        'Numer PLOMBY (seal), jeśli naczepa jest zaplombowana. Przepisz z plomby.',
-        'SEAL number if the trailer is sealed. Copy it from the seal.');
-    add(['inp_f19'],
-        'Pole 19 – firma wystawiająca dokument CMR.',
-        'Box 19 – the company completing this consignment note.');
-    add(['inp_place20'],
-        'Pole 20 – miejscowość podpisania dokumentu przez kierowcę.',
-        'Box 20 – place where the driver signs the document.');
-    add(['inp_date20'],
-        'Pole 20 – data podpisania dokumentu przez kierowcę.',
-        'Box 20 – date when the driver signs the document.');
-    return H;
-})();
-
-function showFieldHelp(el) {
-    const h = FIELD_HELP[el.id];
-    if(!h) return;
-    const lang = getAppLang();
-    document.getElementById('help-bubble-text').textContent = h[lang] || h.en;
-    document.getElementById('help-bubble').style.display = 'block';
-}
-
-// ============================================================
-// BLANK SHEET PRINT
-// ============================================================
-function printBlankCMR() {
-    const page = document.getElementById('cmr-page');
-    page.classList.add('print-blank');
-    window.print();
-    setTimeout(() => page.classList.remove('print-blank'), 1500);
-}
-
-// ============================================================
-// SIGNATURE FROM IMAGE FILE (crop & scale)
-// ============================================================
-let sigImgObj = null, sigImgBase = 1, sigImgMul = 1, sigImgX = 0, sigImgY = 0, sigImgDrag = null;
-
-function onSigImgFile(input) {
-    const f = input.files && input.files[0];
-    if(!f) return;
-    const rd = new FileReader();
-    rd.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-            sigImgObj = img;
-            const cv = document.getElementById('sigimg-canvas');
-            sigImgBase = Math.min(cv.width / img.width, cv.height / img.height);
-            sigImgMul = 1;
-            sigImgX = (cv.width  - img.width  * sigImgBase) / 2;
-            sigImgY = (cv.height - img.height * sigImgBase) / 2;
-            document.getElementById('sigimg-scale').value = 1;
-            document.getElementById('sigimg-modal').style.display = 'flex';
-            drawSigImg();
-        };
-        img.src = rd.result;
-    };
-    rd.readAsDataURL(f);
-    input.value = '';
-}
-
-function drawSigImg() {
-    const cv = document.getElementById('sigimg-canvas');
-    const ctx = cv.getContext('2d');
-    ctx.clearRect(0, 0, cv.width, cv.height);
-    if(!sigImgObj) return;
-    const s = sigImgBase * sigImgMul;
-    ctx.drawImage(sigImgObj, sigImgX, sigImgY, sigImgObj.width * s, sigImgObj.height * s);
-}
-
-function sigImgScale(mul) {
-    if(!sigImgObj) return;
-    const cv = document.getElementById('sigimg-canvas');
-    const s0 = sigImgBase * sigImgMul, s1 = sigImgBase * mul;
-    // keep the image point at the canvas centre fixed while scaling
-    const cx = (cv.width / 2 - sigImgX) / s0, cy = (cv.height / 2 - sigImgY) / s0;
-    sigImgMul = mul;
-    sigImgX = cv.width / 2  - cx * s1;
-    sigImgY = cv.height / 2 - cy * s1;
-    drawSigImg();
-}
-
-function initSigImgDrag() {
-    const cv = document.getElementById('sigimg-canvas');
-    if(!cv) return;
-    const down = (e) => {
-        const t = e.touches ? e.touches[0] : e;
-        sigImgDrag = { x0: t.clientX, y0: t.clientY, ix: sigImgX, iy: sigImgY };
-        e.preventDefault();
-    };
-    const move = (e) => {
-        if(!sigImgDrag) return;
-        const t = e.touches ? e.touches[0] : e;
-        const r = cv.getBoundingClientRect();
-        const k = cv.width / r.width;   // css px -> canvas px
-        sigImgX = sigImgDrag.ix + (t.clientX - sigImgDrag.x0) * k;
-        sigImgY = sigImgDrag.iy + (t.clientY - sigImgDrag.y0) * k;
-        drawSigImg();
-        e.preventDefault();
-    };
-    const up = () => { sigImgDrag = null; };
-    cv.addEventListener('touchstart', down, {passive: false});
-    cv.addEventListener('mousedown', down);
-    cv.addEventListener('touchmove', move, {passive: false});
-    document.addEventListener('mousemove', move);
-    cv.addEventListener('touchend', up);
-    document.addEventListener('mouseup', up);
-}
-
-function saveSigImg() {
-    const cv = document.getElementById('sigimg-canvas');
-    const url = cv.toDataURL('image/png');
-    localStorage.setItem('cmr_sig', url);
-    const pad = sigPads['profile-sig-canvas'];
-    if(pad) {
-        const img = new Image();
-        img.onload = () => {
-            resizeSigCanvas(pad);
-            pad.ctx.clearRect(0, 0, pad.canvas.width, pad.canvas.height);
-            pad.ctx.drawImage(img, 0, 0, pad.canvas.width, pad.canvas.height);
-        };
-        img.src = url;
-    }
-    document.getElementById('sigimg-modal').style.display = 'none';
-    toast('✅ Podpis z pliku zapisany — użyj "Mój Podpis" w polu 18', 'success');
 }
 
 // ============================================================
@@ -3075,7 +2715,7 @@ function applyBoxRow(i) {
 // ---- Save / load / reset ----
 // Bump when CMR element structure changes — old saved layouts map le-ids
 // to different elements and would scramble the form.
-const LE_LAYOUT_VER = 6;
+const LE_LAYOUT_VER = 5;
 
 function saveFullLayout() {
     const page = document.getElementById('cmr-page');
@@ -3107,10 +2747,7 @@ function loadFullLayout() {
     if(!raw) return;
     try {
         const data = JSON.parse(raw);
-        // ver 5 -> 6 migration: same schema, but icon positions saved by v5
-        // could be wrong (misplaced pickers) — re-anchor them to defaults
-        const fromV5 = data.ver === 5;
-        if(data.ver !== LE_LAYOUT_VER && !fromV5) {
+        if(data.ver !== LE_LAYOUT_VER) {
             localStorage.removeItem('cmr_layout');
             return;
         }
@@ -3126,8 +2763,7 @@ function loadFullLayout() {
         });
         page.querySelectorAll('[data-le-id]').forEach(el => {
             const id = el.dataset.leId;
-            const isIcon = el.classList.contains('quick-pick') || el.classList.contains('geo-btn');
-            const p  = (fromV5 && isIcon) ? null : positions[id];
+            const p  = positions[id];
             if(p) {
                 if(p.top)    el.style.top    = p.top;
                 if(p.left)   el.style.left   = p.left;
@@ -3144,7 +2780,6 @@ function loadFullLayout() {
             if(leHiddenIds.has(id)) el.style.display = 'none';
             if(leLockedIds.has(id)) el.classList.add('le-locked');
         });
-        if(fromV5) saveFullLayout();   // persist as current version
     } catch(e) { console.error('Layout load error:', e); }
 }
 
