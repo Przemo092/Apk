@@ -792,6 +792,9 @@ www.nolantransport.com</textarea>
     </div>
 </div>
 
+<!-- ZOOM RESET (shown while CMR preview is pinch-zoomed) -->
+<button id="zoom-reset-btn" onclick="resetViewZoom()" style="display:none; position:fixed; right:14px; bottom:86px; z-index:8000; width:auto; padding:10px 16px; border:none; border-radius:24px; background:rgba(26,43,64,0.88); color:white; font-size:13px; font-weight:bold; box-shadow:0 4px 14px rgba(0,0,0,0.35); cursor:pointer;">🔍 100%</button>
+
 <!-- NAVIGATION -->
 <div class="nav-bar">
     <div class="nav-item active" onclick="nav('cmr', this)"><span class="nav-icon">📝</span>CMR</div>
@@ -851,6 +854,7 @@ window.addEventListener('load', () => {
     setupSignaturePad('sig2');
     setupSignaturePad('profile-sig-canvas');
     setupOverlaySigPad();
+    initPinchZoom();
     tagLEElements();
     initLEHandlers();
 
@@ -893,6 +897,7 @@ function nav(v, el) {
     if(el) el.classList.add('active');
     if(v === 'history') loadHistoryList();
     if(v === 'profile') setTimeout(() => resizeSigCanvas(sigPads['profile-sig-canvas']), 50);
+    if(v !== 'cmr') resetViewZoom();
 }
 
 // ============================================================
@@ -1808,6 +1813,123 @@ function newCMR() {
 }
 
 // ============================================================
+// PINCH ZOOM — gallery-like zoom/pan of the CMR preview
+// ============================================================
+let vz = { z: 1, x: 0, y: 0, pinch: null, pan: null, lastTap: 0, tapX: 0, tapY: 0 };
+
+function vzBase() {
+    // must mirror the .page mobile scale in CSS (@media max-width:800px)
+    return window.matchMedia('(max-width: 800px)').matches ? 0.48 : 1;
+}
+
+function vzApply() {
+    if(leActive) return;   // the layout editor manages its own zoom
+    const page = document.getElementById('cmr-page');
+    if(vz.z <= 1.001) {
+        vz.z = 1; vz.x = 0; vz.y = 0;
+        page.style.transform = '';
+        page.style.transformOrigin = '';
+    } else {
+        page.style.transformOrigin = 'top left';
+        page.style.transform = 'translate(' + vz.x.toFixed(1) + 'px, ' + vz.y.toFixed(1) + 'px) scale(' + (vzBase() * vz.z).toFixed(4) + ')';
+    }
+    const btn = document.getElementById('zoom-reset-btn');
+    if(btn) btn.style.display = vz.z > 1.001 ? 'block' : 'none';
+}
+
+function resetViewZoom() {
+    vz.z = 1;
+    vzApply();
+}
+
+function vzZoomTo(z1, cx, cy) {
+    const page = document.getElementById('cmr-page');
+    const rect = page.getBoundingClientRect();
+    const S0 = vzBase() * vz.z;
+    const ox = rect.left - vz.x, oy = rect.top - vz.y;
+    const px = (cx - rect.left) / S0, py = (cy - rect.top) / S0;
+    vz.z = Math.min(5, Math.max(1, z1));
+    const S1 = vzBase() * vz.z;
+    vz.x = cx - ox - S1 * px;
+    vz.y = cy - oy - S1 * py;
+    vzApply();
+}
+
+function initPinchZoom() {
+    const wrap = document.querySelector('.cmr-wrapper');
+    const page = document.getElementById('cmr-page');
+    if(!wrap || !page) return;
+
+    wrap.addEventListener('touchstart', (e) => {
+        if(leActive) return;
+        if(e.touches.length === 2) {
+            e.preventDefault();
+            const a = e.touches[0], b = e.touches[1];
+            const rect = page.getBoundingClientRect();
+            const S0 = vzBase() * vz.z;
+            vz.pan = null;
+            vz.pinch = {
+                d0: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1,
+                z0: vz.z,
+                ox: rect.left - vz.x, oy: rect.top - vz.y,
+                px: ((a.clientX + b.clientX) / 2 - rect.left) / S0,
+                py: ((a.clientY + b.clientY) / 2 - rect.top)  / S0
+            };
+        } else if(e.touches.length === 1 && vz.z > 1.001) {
+            const t = e.touches[0];
+            vz.pan = { x0: t.clientX, y0: t.clientY, px: vz.x, py: vz.y, moved: false };
+        }
+    }, { passive: false });
+
+    wrap.addEventListener('touchmove', (e) => {
+        if(leActive) return;
+        if(vz.pinch && e.touches.length === 2) {
+            e.preventDefault();
+            const a = e.touches[0], b = e.touches[1];
+            const d  = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+            const z1 = Math.min(5, Math.max(1, vz.pinch.z0 * d / vz.pinch.d0));
+            const S1 = vzBase() * z1;
+            const mx = (a.clientX + b.clientX) / 2, my = (a.clientY + b.clientY) / 2;
+            vz.z = z1;
+            vz.x = mx - vz.pinch.ox - S1 * vz.pinch.px;
+            vz.y = my - vz.pinch.oy - S1 * vz.pinch.py;
+            vzApply();
+        } else if(vz.pan && e.touches.length === 1) {
+            const t = e.touches[0];
+            const dx = t.clientX - vz.pan.x0, dy = t.clientY - vz.pan.y0;
+            if(!vz.pan.moved && Math.hypot(dx, dy) > 6) vz.pan.moved = true;
+            if(vz.pan.moved) {
+                e.preventDefault();
+                vz.x = vz.pan.px + dx;
+                vz.y = vz.pan.py + dy;
+                vzApply();
+            }
+        }
+    }, { passive: false });
+
+    wrap.addEventListener('touchend', (e) => {
+        if(leActive) { vz.pinch = null; vz.pan = null; return; }
+        if(e.touches.length < 2) vz.pinch = null;
+        if(e.touches.length === 0) {
+            const moved = vz.pan && vz.pan.moved;
+            vz.pan = null;
+            // double-tap toggles zoom (skipped on interactive elements)
+            const t = e.changedTouches && e.changedTouches[0];
+            if(t && !moved && !['INPUT','TEXTAREA','BUTTON','CANVAS','SELECT'].includes(e.target.tagName)) {
+                const now = Date.now();
+                if(now - vz.lastTap < 320 && Math.hypot(t.clientX - vz.tapX, t.clientY - vz.tapY) < 30) {
+                    vz.lastTap = 0;
+                    if(vz.z > 1.001) resetViewZoom();
+                    else vzZoomTo(2.5, t.clientX, t.clientY);
+                } else {
+                    vz.lastTap = now; vz.tapX = t.clientX; vz.tapY = t.clientY;
+                }
+            }
+        }
+    });
+}
+
+// ============================================================
 // CARRIER DISPLAY
 // ============================================================
 const DEFAULT_CARRIER = 'NOLAN TRANSPORT HOLDINGS LIMITED\nOaklands, New Ross, Co. Wexford Y34 X335, Ireland\nTel: +353 51 421965\nEmail: sales@nolantransport.com\nwww.nolantransport.com';
@@ -1910,13 +2032,14 @@ function unlockLEFromProfile() {
 
 function launchLEFromProfile() {
     if(!leUnlocked) { toast('Najpierw odblokuj edytor kodem', 'error'); return; }
-    showView('cmr');
+    nav('cmr', document.querySelector('.nav-item'));
     if(!confirm('Uruchomić zaawansowany edytor CMR?')) return;
     activateLEMode();
 }
 
 // ---- Activate / deactivate ----
 function activateLEMode() {
+    resetViewZoom();
     leActive = true;
     const page = document.getElementById('cmr-page');
     const bar  = document.getElementById('layout-bar');
