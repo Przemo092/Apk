@@ -1903,9 +1903,11 @@ function loadDraft() {
         const data = JSON.parse(raw);
         if(data.fields) {
             Object.entries(data.fields).forEach(([id, val]) => {
-                // Never blank the carrier field from a stale draft — it holds
-                // the permanent Nolan Transport data
-                if(id === 'inp_carrier' && !String(val).trim()) return;
+                // Field 5 (carrier) is never restored from the draft: its
+                // content is owned by the profile settings (or the built-in
+                // Nolan default). The device-local draft used to resurrect
+                // stale manual data here forever.
+                if(id === 'inp_carrier') return;
                 const el = document.getElementById(id);
                 if(el) el.value = val;
             });
@@ -2082,7 +2084,7 @@ function anchorIcons() {
 // ============================================================
 // Bumped on every deploy; compared against the copy on the server, so the
 // check reflects what is actually RUNNING, not what the server last served.
-const APP_BUILD = 'B-2026-07-02-01';
+const APP_BUILD = 'B-2026-07-02-02';
 let lastUpdateCheck = 0;
 
 async function checkAppUpdate(silent = true) {
