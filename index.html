@@ -990,7 +990,7 @@ window.addEventListener('load', () => {
 
     // PWA service worker — auto-reload once when a new version takes control
     if('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=' + APP_BUILD).then(reg => {
+        navigator.serviceWorker.register('sw.js?v=' + APP_BUILD, { updateViaCache: 'none' }).then(reg => {
             if(reg && reg.update) reg.update();
         }).catch(() => {});
         let swReloaded = false;
@@ -2243,7 +2243,7 @@ function anchorIcons() {
 // ============================================================
 // Bumped on every deploy; compared against the copy on the server, so the
 // check reflects what is actually RUNNING, not what the server last served.
-const APP_BUILD = 'B-2026-07-02-04';
+const APP_BUILD = 'B-2026-07-02-05';
 let lastUpdateCheck = 0;
 
 async function checkAppUpdate(silent = true) {
