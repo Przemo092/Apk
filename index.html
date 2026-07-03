@@ -91,6 +91,12 @@
         }
         @keyframes barSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
         #splash-tip { margin-top: 14px; font-size: 12px; color: #8fb4d8; text-align: center; padding: 0 40px; min-height: 14px; animation: fadeUp 0.8s 0.7s ease both; position: relative; z-index: 2; }
+        #splash-author {
+            position: absolute; bottom: 26px; left: 0; width: 100%; text-align: center;
+            font-size: 12px; color: #7ea8cf; letter-spacing: 1px;
+            animation: fadeUp 0.9s 0.9s ease both; z-index: 2;
+        }
+        #splash-author b { color: #cfe6ff; font-weight: 700; }
 
         /* TOAST */
         #toast-container {
@@ -350,7 +356,8 @@
             input.empty-date { visibility: hidden !important; }
             #scan-bg { display: none !important; }
             /* blank-sheet print: keep the grid and Nolan pre-print, hide data */
-            #cmr-page.print-blank .cmr-input { color: transparent !important; -webkit-text-fill-color: transparent !important; }
+            /* blank print keeps the pre-printed clause in field 14, hides only user data */
+            #cmr-page.print-blank .cmr-input:not(#inp_f14) { color: transparent !important; -webkit-text-fill-color: transparent !important; }
             #cmr-page.print-blank .sig-canvas-inner { visibility: hidden !important; }
             /* data-only print (onto a pre-printed CMR): hide all form graphics */
             #cmr-page.data-only .line-h, #cmr-page.data-only .line-v,
@@ -380,6 +387,7 @@
     </div>
     <div id="splash-bar"></div>
     <div id="splash-tip"></div>
+    <div id="splash-author">stworzona przez kierowcę, dla kierowców · <b>Przemek Plewka</b></div>
 </div>
 
 <!-- TOAST CONTAINER -->
@@ -784,11 +792,30 @@ www.nolantransport.com</textarea>
     <div class="card">
         <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">🖨️ Druk na gotowym druku CMR</h3>
         <p style="font-size:12px; color:#555; margin:0 0 10px;">Wgraj skan/zdjęcie swojego papierowego CMR jako podkład, dopasuj pola w edytorze do podkładu, a potem drukuj <b>same dane</b> prosto na gotowy formularz.</p>
-        <input type="file" id="scan-file" accept="image/*" style="display:none;" onchange="onScanFile(this)">
-        <button class="btn btn-primary" onclick="document.getElementById('scan-file').click()">📷 Wgraj skan CMR (podkład)</button>
+        <input type="file" id="scan-file" accept="image/*,application/pdf" style="display:none;" onchange="onScanFile(this)">
+        <button class="btn btn-primary" onclick="document.getElementById('scan-file').click()">📷 Wgraj skan CMR (zdjęcie lub PDF)</button>
         <button class="btn btn-gray" id="scan-toggle-btn" style="margin-top:8px;" onclick="toggleScanBg()">👁 Pokaż podkład na ekranie</button>
         <button class="btn btn-danger" style="margin-top:8px;" onclick="removeScan()">🗑 Usuń podkład</button>
         <p style="font-size:11px; color:#888; margin:10px 0 0;">Podkład widać tylko na ekranie — nigdy się nie drukuje. Do druku danych użyj przycisku "🖨️ Druk na gotowym CMR" na zakładce CMR.</p>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📊 Twoje statystyki</h3>
+        <div id="stats-box" style="display:flex; gap:8px; text-align:center;"></div>
+    </div>
+
+    <div class="card" style="background:linear-gradient(160deg,#0a1a2f,#14406e); border:none; color:#dce9f7;">
+        <h3 style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.15); padding-bottom:10px; color:#7ee0ff;">🚚 O aplikacji</h3>
+        <p style="font-size:15px; font-weight:bold; color:#ffffff; margin:0 0 10px; line-height:1.4;">CMR PRO — stworzona przez kierowcę, dla kierowców.</p>
+        <p style="font-size:12.5px; line-height:1.6; margin:0 0 10px;">Ta aplikacja powstała za kierownicą, nie za biurkiem. Zrobiona z myślą o kierowcach <b style="color:#fff;">Nolan Transport</b>, żeby dokumenty CMR można było wystawiać tam, gdzie naprawdę dzieje się praca — w kabinie, na rampie, w trasie.</p>
+        <ul style="font-size:12.5px; line-height:1.7; margin:0 0 12px; padding-left:18px;">
+            <li>wypełnisz CMR na telefonie w kilka minut</li>
+            <li>podpiszesz palcem na ekranie — odbiorca również</li>
+            <li>wyślesz gotowy PDF e-mailem lub WhatsApp jednym dotknięciem</li>
+            <li>wydrukujesz cały dokument, pusty formularz albo sam nadruk danych</li>
+            <li>archiwum tras, baza adresów i pojazdów zawsze pod ręką — także offline</li>
+        </ul>
+        <p style="font-size:12px; margin:0; color:#9fc4e8; border-top:1px solid rgba(255,255,255,0.15); padding-top:10px;">Autor: <b style="color:#fff;">Przemek Plewka</b> 🚛<br><span style="font-size:11px;">Pomysł, projekt i testy — na trasie.</span></p>
     </div>
 
     <div class="card" style="background:#e3f2fd; border:1px solid #bbdefb;">
@@ -1004,6 +1031,7 @@ window.addEventListener('load', () => {
     // show the running build number in the profile footer
     const bt = document.getElementById('build-tag');
     if(bt) bt.textContent = 'Wersja aplikacji: ' + APP_BUILD;
+    renderStats();
 });
 
 // ============================================================
@@ -1015,7 +1043,10 @@ function nav(v, el) {
     document.getElementById('view-' + v).classList.add('active');
     if(el) el.classList.add('active');
     if(v === 'history') loadHistoryList();
-    if(v === 'profile') setTimeout(() => resizeSigCanvas(sigPads['profile-sig-canvas']), 50);
+    if(v === 'profile') {
+        setTimeout(() => resizeSigCanvas(sigPads['profile-sig-canvas']), 50);
+        renderStats();
+    }
     if(v !== 'cmr') resetViewZoom();
 }
 
@@ -1146,9 +1177,66 @@ function printDataOnly() {
 // ============================================================
 // SCAN BACKDROP (align fields to your own paper CMR)
 // ============================================================
+function saveScanCanvas(c) {
+    try {
+        localStorage.setItem('cmr_scan', c.toDataURL('image/jpeg', 0.8));
+        localStorage.setItem('cmr_scan_show', '1');
+        applyScanBg();
+        nav('cmr', document.querySelector('.nav-item'));
+        toast('✅ Podkład wgrany — dopasuj pola w edytorze do podkładu', 'success', 5000);
+    } catch(e) {
+        toast('❌ Skan jest za duży — użyj mniejszego pliku', 'error', 4000);
+    }
+}
+
+// pdf.js loaded on demand — only when the user picks a PDF backdrop
+function loadPdfJs() {
+    if(window.pdfjsLib) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = () => {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            resolve();
+        };
+        s.onerror = reject;
+        document.head.appendChild(s);
+    });
+}
+
+async function loadPdfScan(file) {
+    toast('📄 Wczytywanie PDF…', 'info', 3000);
+    try {
+        await loadPdfJs();
+        const buf = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+        const page = await pdf.getPage(1);
+        const raw = page.getViewport({ scale: 1 });
+        const scale = 1240 / raw.width;
+        const vp = page.getViewport({ scale });
+        const c = document.createElement('canvas');
+        c.width = Math.round(vp.width);
+        c.height = Math.round(vp.height);
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, c.width, c.height);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        saveScanCanvas(c);
+    } catch(e) {
+        console.error('PDF scan error:', e);
+        toast('❌ Nie udało się wczytać PDF — sprawdź internet lub użyj zdjęcia', 'error', 5000);
+    }
+}
+
 function onScanFile(input) {
     const f = input.files && input.files[0];
+    input.value = '';
     if(!f) return;
+    if(f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) {
+        loadPdfScan(f);
+        return;
+    }
     const rd = new FileReader();
     rd.onload = () => {
         const img = new Image();
@@ -1159,20 +1247,11 @@ function onScanFile(input) {
             c.width = W;
             c.height = Math.round(W * img.height / img.width);
             c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-            try {
-                localStorage.setItem('cmr_scan', c.toDataURL('image/jpeg', 0.8));
-                localStorage.setItem('cmr_scan_show', '1');
-                applyScanBg();
-                nav('cmr', document.querySelector('.nav-item'));
-                toast('✅ Podkład wgrany — dopasuj pola w edytorze do podkładu', 'success', 5000);
-            } catch(e) {
-                toast('❌ Skan jest za duży — zrób mniejsze zdjęcie', 'error', 4000);
-            }
+            saveScanCanvas(c);
         };
         img.src = rd.result;
     };
     rd.readAsDataURL(f);
-    input.value = '';
 }
 
 function toggleScanBg() {
@@ -1481,6 +1560,29 @@ function exportHistoryCSV() {
     a.remove();
     URL.revokeObjectURL(url);
     toast('✅ Plik CSV pobrany — otwórz w Excelu', 'success');
+}
+
+function renderStats() {
+    const box = document.getElementById('stats-box');
+    if(!box) return;
+    const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    const now = new Date();
+    const month = hist.filter(h => {
+        const d = new Date(h.id);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    const sum = (arr, key) => arr.reduce((a, h) => a + (parseInt(h[key], 10) || 0), 0);
+    const palIn  = sum(month, 'inp_pal_lin')  + sum(month, 'inp_pal_din');
+    const palOut = sum(month, 'inp_pal_lout') + sum(month, 'inp_pal_dout');
+    const tile = (num, label) =>
+        `<div style="flex:1; background:#f4f7fb; border-radius:10px; padding:10px 4px;">` +
+        `<div style="font-size:20px; font-weight:800; color:#0056b3;">${num}</div>` +
+        `<div style="font-size:10px; color:#777; margin-top:2px;">${label}</div></div>`;
+    box.innerHTML =
+        tile(hist.length, 'tras łącznie') +
+        tile(month.length, 'tras w tym mies.') +
+        tile(palIn, 'palety IN (mies.)') +
+        tile(palOut, 'palety OUT (mies.)');
 }
 
 function repeatLastRoute() {
@@ -2243,7 +2345,7 @@ function anchorIcons() {
 // ============================================================
 // Bumped on every deploy; compared against the copy on the server, so the
 // check reflects what is actually RUNNING, not what the server last served.
-const APP_BUILD = 'B-2026-07-02-05';
+const APP_BUILD = 'B-2026-07-03-01';
 let lastUpdateCheck = 0;
 
 async function checkAppUpdate(silent = true) {
