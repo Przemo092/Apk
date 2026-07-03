@@ -329,6 +329,11 @@
             font-family: Arial, Helvetica, sans-serif;
             line-height: 1.4;
         }
+        /* scan-overlay mode: only the backdrop and the input fields show */
+        #cmr-page.scan-mode .line-h, #cmr-page.scan-mode .line-v,
+        #cmr-page.scan-mode .lbl, #cmr-page.scan-mode .num,
+        #cmr-page.scan-mode .carrier-display { display: none !important; }
+        #cmr-page.scan-mode .cmr-input { background: rgba(255,253,231,0.55); }
         #inp_carrier { opacity: 0 !important; pointer-events: none !important; }
         .le-mode #carrier-display { display: none !important; }
         .le-mode #inp_carrier { opacity: 1 !important; pointer-events: auto !important; }
@@ -434,6 +439,7 @@
         <div class="btn-row" style="margin-bottom:4px;">
             <button class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="printBlankCMR()">📄 Pusty druk</button>
             <button class="btn btn-gray" style="font-size:12px; padding:9px;" onclick="printDataOnly()">🖨️ Druk na gotowym CMR</button>
+            <button id="scan-quick-btn" class="btn btn-gray" style="font-size:12px; padding:9px; display:none;" onclick="toggleScanBg()">🧾 Tryb nadruku</button>
         </div>
         <div id="layout-bar" style="display:none; background:#e8eeff; border-radius:8px; padding:9px 12px; margin-bottom:8px; flex-direction:column; gap:7px;">
             <div style="font-size:11px; color:#0056b3;">✏️ Kliknij element = wybierz · przeciągnij = przesuń · niebieski róg = rozmiar. Włącz tylko to, co chcesz edytować:</div>
@@ -1135,6 +1141,7 @@ function restorePrintDates() {
 }
 
 function printCMR() {
+    if(scanModeBlocked()) return;
     if(!validateForm()) {
         toast('Uzupełnij wymagane pola przed drukowaniem', 'error');
         return;
@@ -1145,6 +1152,7 @@ function printCMR() {
 }
 
 function printBlankCMR() {
+    if(scanModeBlocked()) return;
     const page = document.getElementById('cmr-page');
     page.classList.add('print-blank');
     preparePrintDates();
@@ -1176,7 +1184,76 @@ function printDataOnly() {
 
 // ============================================================
 // SCAN BACKDROP (align fields to your own paper CMR)
+// Two independent layouts: the default one (normal work + full print)
+// and a separate overlay layout used only while the backdrop is shown.
 // ============================================================
+let overlayMode = false;
+let defaultGeomSnap = null;
+
+function captureGeom() {
+    const snap = {};
+    document.querySelectorAll('#cmr-page [data-le-id]').forEach(el => {
+        snap[el.dataset.leId] = {
+            top: el.style.top, left: el.style.left,
+            width: el.style.width, height: el.style.height,
+            fontSize: el.style.fontSize
+        };
+    });
+    return snap;
+}
+
+function applyGeom(snap) {
+    if(!snap) return;
+    document.querySelectorAll('#cmr-page [data-le-id]').forEach(el => {
+        const s = snap[el.dataset.leId];
+        if(!s) return;
+        el.style.top      = s.top      || '';
+        el.style.left     = s.left     || '';
+        el.style.width    = s.width    || '';
+        el.style.height   = s.height   || '';
+        el.style.fontSize = s.fontSize || '';
+    });
+}
+
+function saveOverlayLayout() {
+    localStorage.setItem('cmr_layout_overlay', JSON.stringify({ ver: LE_LAYOUT_VER, geom: captureGeom() }));
+}
+
+function setScanMode(on) {
+    if(on === overlayMode) return;
+    const page = document.getElementById('cmr-page');
+    if(on) {
+        // remember the default layout, then bring in the overlay layout
+        defaultGeomSnap = captureGeom();
+        try {
+            const raw = localStorage.getItem('cmr_layout_overlay');
+            if(raw) {
+                const d = JSON.parse(raw);
+                if(d.ver === LE_LAYOUT_VER && d.geom) applyGeom(d.geom);
+            }
+        } catch(e) {}
+        overlayMode = true;
+        page.classList.add('scan-mode');
+    } else {
+        // persist overlay tweaks, then restore the untouched default
+        saveOverlayLayout();
+        overlayMode = false;
+        applyGeom(defaultGeomSnap);
+        page.classList.remove('scan-mode');
+    }
+    anchorIcons();
+    updateCarrierDisplay();
+    if(leActive) injectLERHs();
+}
+
+function scanModeBlocked() {
+    if(overlayMode) {
+        toast('Masz włączony tryb nadruku (podkład). Wyłącz go przyciskiem 🧾, aby drukować pełny CMR.', 'error', 5000);
+        return true;
+    }
+    return false;
+}
+
 function saveScanCanvas(c) {
     try {
         localStorage.setItem('cmr_scan', c.toDataURL('image/jpeg', 0.8));
@@ -1274,17 +1351,25 @@ function applyScanBg() {
     const el = document.getElementById('scan-bg');
     if(!el) return;
     const src = localStorage.getItem('cmr_scan');
-    const show = src && localStorage.getItem('cmr_scan_show') === '1';
+    const show = !!src && localStorage.getItem('cmr_scan_show') === '1';
     if(show) { el.src = src; el.style.display = 'block'; }
     else el.style.display = 'none';
+    setScanMode(show);
     const btn = document.getElementById('scan-toggle-btn');
-    if(btn) btn.textContent = show ? '🙈 Ukryj podkład' : '👁 Pokaż podkład na ekranie';
+    if(btn) btn.textContent = show ? '🙈 Ukryj podkład (tryb nadruku)' : '👁 Pokaż podkład (tryb nadruku)';
+    const qb = document.getElementById('scan-quick-btn');
+    if(qb) {
+        qb.style.display = src ? '' : 'none';
+        qb.textContent = show ? '🧾 Tryb nadruku: WŁĄCZONY' : '🧾 Tryb nadruku: wyłączony';
+        qb.style.background = show ? '#28a745' : '';
+    }
 }
 
 // ============================================================
 // PDF GENERATION
 // ============================================================
 async function generatePDF() {
+    if(scanModeBlocked()) return;
     if(!validateForm()) {
         toast('Uzupełnij wymagane pola przed generowaniem PDF', 'error');
         return;
@@ -2345,7 +2430,7 @@ function anchorIcons() {
 // ============================================================
 // Bumped on every deploy; compared against the copy on the server, so the
 // check reflects what is actually RUNNING, not what the server last served.
-const APP_BUILD = 'B-2026-07-03-01';
+const APP_BUILD = 'B-2026-07-03-02';
 let lastUpdateCheck = 0;
 
 async function checkAppUpdate(silent = true) {
@@ -3263,6 +3348,9 @@ function exportLayoutFile() {
 const LE_LAYOUT_VER = 5;
 
 function saveFullLayout() {
+    // while the scan backdrop is on, edits belong to the overlay layout —
+    // the default layout must stay untouched
+    if(overlayMode) { saveOverlayLayout(); return; }
     const page = document.getElementById('cmr-page');
     if(!page) return;
     const positions = {}, fonts = {}, weights = {}, italics = {}, aligns = {}, texts = {}, customs = [];
