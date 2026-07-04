@@ -1,0 +1,450 @@
+        :root {
+            --primary: #0056b3;
+            --bg-app: #f2f4f8;
+            --cmr-ink: #000;
+            --input-bg: #fffde7;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-app);
+            padding-bottom: 70px;
+            overscroll-behavior-y: none;
+        }
+
+        /* SPLASH */
+        /* ============ SPLASH — premium boot experience ============ */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(130% 100% at 50% 32%, #10151f 0%, #0a0e16 55%, #06090f 100%);
+            z-index: 9999; overflow: hidden;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.7s ease;
+        }
+        /* technical grid, revealed gradually by light around the centre */
+        #splash-grid {
+            position: absolute; top: -60px; left: -60px; right: -60px; bottom: -60px;
+            background-image:
+                linear-gradient(rgba(125,175,255,0.055) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(125,175,255,0.055) 1px, transparent 1px);
+            background-size: 46px 46px;
+            opacity: 0;
+            animation: gridReveal 2.4s 0.35s ease forwards;
+            -webkit-mask-image: radial-gradient(circle at 50% 40%, black 0%, transparent 72%);
+            mask-image: radial-gradient(circle at 50% 40%, black 0%, transparent 72%);
+            pointer-events: none;
+        }
+        @keyframes gridReveal { to { opacity: 1; } }
+        /* single calm light pulse activating the network */
+        #splash-pulse {
+            position: absolute; left: 50%; top: 40%;
+            width: 10px; height: 10px; border-radius: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(150,195,255,0.45), transparent 68%);
+            opacity: 0;
+            animation: pulseOut 1.7s 0.5s cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
+            pointer-events: none;
+        }
+        @keyframes pulseOut {
+            0%   { opacity: 0.85; width: 10px;  height: 10px; }
+            100% { opacity: 0;    width: 620px; height: 620px; }
+        }
+        /* logo mark: built from thin lines, materialising from blur */
+        #splash-mark {
+            position: relative; z-index: 2;
+            filter: blur(7px); opacity: 0;
+            animation: markIn 1.5s 0.55s cubic-bezier(0.3, 0, 0.2, 1) forwards;
+        }
+        @keyframes markIn {
+            25%  { opacity: 1; }
+            100% { opacity: 1; filter: blur(0); }
+        }
+        #splash-mark::before {
+            content: ''; position: absolute; left: 50%; top: 50%;
+            width: 190px; height: 190px; border-radius: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(110,160,255,0.14), transparent 65%);
+            pointer-events: none;
+        }
+        #splash-mark .mk-stroke {
+            stroke-dasharray: 420; stroke-dashoffset: 420;
+            animation: drawLine 1.5s 0.65s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes drawLine { to { stroke-dashoffset: 0; } }
+        #splash-mark .mk-node {
+            opacity: 0;
+            animation: nodeOn 0.5s ease forwards;
+        }
+        #splash-mark .mk-node.n1 { animation-delay: 1.55s; }
+        #splash-mark .mk-node.n2 { animation-delay: 1.75s; }
+        @keyframes nodeOn { to { opacity: 1; } }
+        #splash-title {
+            font-size: 33px; font-weight: 700; letter-spacing: 11px;
+            margin: 30px 0 0 11px; color: #eef4ff;
+            opacity: 0; filter: blur(9px); transform: translateY(10px);
+            animation: textIn 0.95s 1.55s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+            position: relative; z-index: 2;
+        }
+        #splash-title span { color: #6ea8ff; }
+        #splash-sub {
+            font-size: 10.5px; letter-spacing: 3.2px; text-transform: uppercase;
+            color: #7d93b8; margin-top: 12px; text-align: center; padding: 0 30px;
+            opacity: 0; filter: blur(6px); transform: translateY(8px);
+            animation: textIn 0.9s 1.85s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+            position: relative; z-index: 2;
+        }
+        @keyframes textIn { to { opacity: 1; filter: blur(0); transform: translateY(0); } }
+        /* abstract transport route: point A -> line -> point B + light impulse */
+        #splash-route {
+            display: flex; align-items: center; margin-top: 38px;
+            opacity: 0; animation: routeShow 0.7s 2.15s ease forwards;
+            position: relative; z-index: 2;
+        }
+        @keyframes routeShow { to { opacity: 1; } }
+        #route-a, #route-b {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #6ea8ff; box-shadow: 0 0 10px rgba(110, 168, 255, 0.85);
+        }
+        #route-line {
+            position: relative; width: 0; height: 1px; overflow: visible;
+            background: linear-gradient(90deg, rgba(110,168,255,0.12), rgba(110,168,255,0.55), rgba(110,168,255,0.12));
+            animation: routeGrow 1.1s 2.2s cubic-bezier(0.3, 0, 0.2, 1) forwards;
+        }
+        @keyframes routeGrow { to { width: 190px; } }
+        #route-pulse {
+            position: absolute; top: -2px; left: -28px;
+            width: 28px; height: 5px; border-radius: 5px;
+            background: linear-gradient(90deg, transparent, #c4dbff, transparent);
+            animation: routeRun 1.5s 2.6s ease-in-out infinite;
+        }
+        @keyframes routeRun { 0% { left: -28px; } 100% { left: 190px; } }
+        #splash-author {
+            position: absolute; bottom: 24px; left: 0; width: 100%; text-align: center;
+            font-size: 11.5px; color: #55688a; letter-spacing: 1px;
+            opacity: 0; animation: routeShow 1s 2.45s ease forwards; z-index: 2;
+        }
+        #splash-author b { color: #b9cfef; font-weight: 600; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        /* smooth, sequential entrance of the app after the splash */
+        body.app-enter .controls    { animation: appIn 0.55s 0.05s cubic-bezier(0.25, 0.8, 0.25, 1) both; }
+        body.app-enter .cmr-wrapper { animation: appIn 0.65s 0.16s cubic-bezier(0.25, 0.8, 0.25, 1) both; }
+        body.app-enter .nav-bar     { animation: appIn 0.55s 0.28s cubic-bezier(0.25, 0.8, 0.25, 1) both; }
+        @keyframes appIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+        /* ============ HOME MENU ============ */
+        #view-home { padding: 0 0 90px; }
+        .home-hero {
+            background: radial-gradient(120% 90% at 50% 0%, #14406e 0%, #0a1a2f 100%);
+            color: #fff; padding: 30px 22px 26px; text-align: center;
+            border-radius: 0 0 26px 26px; box-shadow: 0 8px 26px rgba(10,26,47,0.35);
+        }
+        .home-hero .hh-mark { width: 58px; height: 58px; margin: 0 auto 10px; display: block; }
+        .home-hero h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 4px; }
+        .home-hero h1 span { color: #6ea8ff; }
+        .home-hero p { margin: 6px 0 0; font-size: 11.5px; letter-spacing: 1.5px; color: #9fc4e8; text-transform: uppercase; }
+        .home-stats { display: flex; gap: 10px; margin: 16px 18px 0; }
+        .home-stats .hs { flex: 1; background: #f4f7fb; border-radius: 14px; padding: 12px 4px; text-align: center; }
+        .home-stats .hs b { display: block; font-size: 22px; color: #0056b3; font-weight: 800; }
+        .home-stats .hs span { font-size: 10px; color: #7a869a; }
+        .home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin: 18px 18px 0; }
+        .home-tile {
+            background: #fff; border: 1px solid #e6ebf3; border-radius: 18px;
+            padding: 18px 14px; cursor: pointer; text-align: left;
+            box-shadow: 0 3px 12px rgba(20,40,70,0.06); transition: transform 0.12s, box-shadow 0.12s;
+            display: flex; flex-direction: column; gap: 8px; min-height: 96px;
+        }
+        .home-tile:active { transform: scale(0.97); box-shadow: 0 2px 6px rgba(20,40,70,0.1); }
+        .home-tile .ht-ic { font-size: 26px; }
+        .home-tile .ht-t { font-size: 14.5px; font-weight: 700; color: #1a2b40; }
+        .home-tile .ht-d { font-size: 11px; color: #8894a6; line-height: 1.3; }
+        .home-tile.primary { grid-column: 1 / -1; background: linear-gradient(135deg, #0056b3, #0a75d8); border: none; color: #fff; flex-direction: row; align-items: center; }
+        .home-tile.primary .ht-t { color: #fff; font-size: 17px; }
+        .home-tile.primary .ht-d { color: #cfe2ff; }
+        .home-tile.primary .ht-ic { font-size: 34px; }
+        .home-foot { text-align: center; font-size: 11px; color: #aab4c2; margin: 22px 18px 0; line-height: 1.6; }
+
+        /* reduced-motion: instant, calm variant */
+        @media (prefers-reduced-motion: reduce) {
+            #splash-grid, #splash-pulse, #route-pulse { display: none !important; }
+            #splash-mark, #splash-title, #splash-sub, #splash-route, #splash-author {
+                animation: none !important; opacity: 1 !important; filter: none !important; transform: none !important;
+            }
+            #splash-mark .mk-stroke { animation: none !important; stroke-dashoffset: 0 !important; }
+            #splash-mark .mk-node { animation: none !important; opacity: 1 !important; }
+            #route-line { animation: none !important; width: 190px !important; }
+            body.app-enter .controls, body.app-enter .cmr-wrapper, body.app-enter .nav-bar { animation: none !important; }
+        }
+
+        /* TOAST */
+        #toast-container {
+            position: fixed; bottom: 75px; left: 50%; transform: translateX(-50%);
+            z-index: 9998; display: flex; flex-direction: column-reverse; align-items: center; gap: 8px;
+            pointer-events: none; width: 90%;
+        }
+        .toast {
+            background: #333; color: white; padding: 11px 20px; border-radius: 22px;
+            font-size: 14px; opacity: 0; transition: opacity 0.3s, transform 0.3s;
+            max-width: 320px; text-align: center; transform: translateY(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #28a745; }
+        .toast.error   { background: #dc3545; }
+        .toast.info    { background: #0056b3; }
+        .toast.warning { background: #f39c12; }
+
+        /* SIG OVERLAY */
+        #sig-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; z-index: 9990; flex-direction: column;
+        }
+        #sig-overlay.open { display: flex; }
+        #sig-overlay-header {
+            padding: 12px 15px; background: var(--primary); color: white;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-shrink: 0;
+        }
+        #sig-overlay-header span { font-weight: bold; font-size: 16px; }
+        #sig-overlay-header button {
+            border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px;
+            font-weight: bold; cursor: pointer; color: white;
+        }
+        #sig-overlay-wrap { flex: 1; position: relative; background: #ccd4de; overflow: hidden; }
+        #overlay-sig-canvas { position: absolute; display: block; cursor: crosshair; touch-action: none; background: white; box-shadow: 0 4px 24px rgba(0,0,0,0.22); border-radius: 6px; border: 3px dashed #0056b3; box-sizing: border-box; }
+        #sig-overlay-hint {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            color: #ccc; font-size: 15px; pointer-events: none; user-select: none; white-space: nowrap;
+        }
+
+        /* NAV */
+        .nav-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 60px;
+            background: #fff; border-top: 1px solid #ddd;
+            display: flex; justify-content: space-around; align-items: center;
+            z-index: 5000; box-shadow: 0 -2px 15px rgba(0,0,0,0.05);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; color: #aaa; font-size: 10px; cursor: pointer; }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 20px; margin-bottom: 3px; }
+
+        /* VIEWS */
+        .view { display: none; padding: 15px; animation: fadeIn 0.4s; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* GENERAL STYLES */
+        h2 { border-left: 5px solid var(--primary); padding-left: 10px; color: #333; }
+        h3 { color: #444; font-size: 16px; margin-bottom: 10px; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .app-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: white; margin-top: 10px; cursor: pointer; text-align: center; }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: #28a745; }
+        .btn-danger  { background: #dc3545; }
+        .btn-purple  { background: #7b2ff7; }
+        .btn-gray    { background: #6c757d; }
+        .input-label { font-size: 12px; color: #666; font-weight: 600; display: block; margin-bottom: 5px; }
+
+        .db-list { list-style: none; padding: 0; }
+        .db-list li { background: #fff; border-bottom: 1px solid #eee; padding: 15px 0; display: flex; justify-content: space-between; align-items: center; }
+
+        .history-item { background: white; padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 4px solid #aaa; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .history-item.has-goods { border-left-color: var(--primary); }
+        .history-date { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 1px; }
+        .history-route { font-weight: bold; font-size: 14px; margin: 5px 0; color: #333; }
+
+        /* CMR WRAPPER */
+        .cmr-wrapper { width: 100%; overflow-x: auto; padding-bottom: 20px; display: flex; justify-content: center; }
+
+        .page {
+            width: 210mm; height: 296mm;
+            background: white; position: relative;
+            box-shadow: 0 0 15px rgba(0,0,0,0.15);
+            overflow: hidden; flex-shrink: 0;
+            transform-origin: top left;
+        }
+
+        @media screen and (max-width: 800px) {
+            .page { transform: scale(0.48); margin-bottom: -140mm; margin-right: -100mm; }
+            .cmr-wrapper { justify-content: flex-start; }
+        }
+
+        /* CMR FIXED ELEMENTS */
+        .line-h { position: absolute; height: 0; border-top: 1px solid var(--cmr-ink); z-index: 20; pointer-events: none; }
+        .line-v { position: absolute; width: 0; border-left: 1px solid var(--cmr-ink); z-index: 20; pointer-events: none; }
+        .lbl { position: absolute; font-size: 5pt; color: var(--cmr-ink); line-height: 1; z-index: 10; pointer-events: none; font-family: Arial; white-space: normal; }
+        .lbl-title { font-size: 10pt; font-weight: bold; text-transform: uppercase; }
+        .lbl-bold { font-weight: 900; font-size: 6pt; }
+        .num { position: absolute; font-size: 7pt; color: var(--cmr-ink); z-index: 10; text-align: right; width: 20px; pointer-events: none; }
+
+        /* CMR INPUTS */
+        .cmr-input {
+            position: absolute; background: var(--input-bg); border: none;
+            font-family: 'Courier New', Courier, monospace; font-size: 10pt; font-weight: bold; color: black;
+            padding: 2px; resize: none; outline: none; z-index: 1; text-align: left;
+        }
+        .cmr-input.invalid { background: #ffe0e0 !important; box-shadow: 0 0 0 2px #dc3545; }
+        /* no calendar icon / dropdown arrow on CMR date fields — Android and
+           desktop render different decorations, strip them all (tapping the
+           field still opens the picker) */
+        #cmr-page input[type="date"] { -webkit-appearance: none; appearance: none; background-image: none !important; }
+        #cmr-page input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; -webkit-appearance: none; opacity: 0; }
+        #cmr-page input[type="date"]::-webkit-inner-spin-button,
+        #cmr-page input[type="date"]::-webkit-clear-button { display: none !important; }
+        /* Chrome autofill paints filled fields pale blue — force our colors */
+        .cmr-input:-webkit-autofill,
+        .cmr-input:-webkit-autofill:hover,
+        .cmr-input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
+            -webkit-text-fill-color: black !important;
+            transition: background-color 999999s ease-out;
+        }
+
+        /* QUICK-PICK / GEO BUTTONS */
+        .quick-pick {
+            position: absolute; width: 24px; height: 24px; background: var(--primary); color: white;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 14px; z-index: 50; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid white;
+        }
+        .geo-btn {
+            position: absolute; width: 24px; height: 24px; background: #28a745; color: white;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 14px; z-index: 50; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid white;
+        }
+
+        /* SIG BOX */
+        .sig-box { position: absolute; z-index: 30; }
+        canvas { width: 100%; height: 100%; }
+        .sig-canvas-inner { width: 100%; height: 100%; cursor: crosshair; touch-action: none; display: block; }
+
+        .sig-ui-btn {
+            position: absolute; color: white; border: none;
+            font-size: 9px; z-index: 35; cursor: pointer; padding: 2px 5px; border-radius: 3px;
+        }
+
+        /* MODAL */
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9000; display: none; justify-content: center; align-items: center; }
+        #modal-box { background: white; width: 85%; max-width: 400px; padding: 20px; border-radius: 12px; max-height: 70vh; overflow-y: auto; }
+        .modal-item { padding: 15px; border-bottom: 1px solid #eee; font-size: 16px; cursor: pointer; }
+        .modal-item:active { background: #f0f0f0; }
+
+        /* CONTROLS */
+        .btn-row { display: flex; gap: 6px; margin-bottom: 8px; }
+        .btn-row .btn { margin: 0; font-size: 12px; padding: 11px 4px; flex: 1; }
+
+        /* VALIDATION BADGE */
+        #validation-banner {
+            display: none; background: #dc3545; color: white; padding: 8px 12px;
+            border-radius: 8px; font-size: 13px; margin-bottom: 8px; text-align: center;
+        }
+
+        /* ADVANCED LAYOUT EDITOR */
+        .le-mode .line-h, .le-mode .line-v { cursor: move !important; min-height: 4mm; min-width: 4mm; }
+        .le-mode .lbl, .le-mode .num { cursor: move !important; pointer-events: auto !important; outline: 1px dashed rgba(0,86,179,0.3) !important; }
+        .le-mode .cmr-input { cursor: move !important; border: 2px dashed rgba(0,86,179,0.6) !important; user-select:none; -webkit-user-select:none; }
+        .le-mode .sig-box { cursor: move !important; outline: 2px dashed rgba(123,47,247,0.6) !important; }
+        .le-mode .le-sel { outline: 2.5px solid #0056b3 !important; box-shadow: 0 0 0 3px rgba(0,86,179,0.25) !important; z-index: 200 !important; }
+        .le-mode .le-locked { outline: 1.5px dashed rgba(220,53,69,0.5) !important; }
+        .le-mode .le-locked.le-sel { outline: 2.5px solid #dc3545 !important; box-shadow: 0 0 0 3px rgba(220,53,69,0.25) !important; }
+        /* Hide helper icons while editing — they cover the elements */
+        .le-mode .quick-pick, .le-mode .geo-btn, .le-mode .sig-ui-btn { display: none !important; }
+        /* Category filters: disabled categories are untouchable and faded */
+        #cmr-page.le-mode.le-hide-lines .line-h, #cmr-page.le-mode.le-hide-lines .line-v { pointer-events: none !important; cursor: default !important; min-height: 0 !important; min-width: 0 !important; }
+        #cmr-page.le-mode.le-hide-labels .lbl, #cmr-page.le-mode.le-hide-labels .num { pointer-events: none !important; cursor: default !important; outline: none !important; }
+        #cmr-page.le-mode.le-hide-inputs .cmr-input { pointer-events: none !important; cursor: default !important; border: 2px dashed rgba(0,86,179,0.12) !important; }
+        #cmr-page.le-mode.le-hide-sigs .sig-box { pointer-events: none !important; cursor: default !important; outline: 1px dashed rgba(123,47,247,0.15) !important; }
+        .le-filter-btn { border:none; border-radius:8px; padding:7px 10px; cursor:pointer; font-size:11px; font-weight:bold; background:#0056b3; color:white; white-space:nowrap; }
+        .le-filter-btn.off { background:#c3cbd8; color:#667; }
+        /* Alignment guides shown while dragging when edges line up */
+        .le-guide { position:absolute; background:#00c853; z-index:550; display:none; pointer-events:none; box-shadow:0 0 3px rgba(0,200,83,0.8); }
+        .box-dim-in { width:62px; border:1px solid #ccc; border-radius:6px; padding:6px 4px; font-size:13px; box-sizing:border-box; text-align:center; }
+        .le-rh {
+            position: absolute; width: 5mm; height: 5mm;
+            background: #0056b3; border-radius: 1mm 0 0 0;
+            cursor: se-resize; z-index: 600; touch-action: none;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+        }
+        #le-tb {
+            display: none; position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+            background: white; border-radius: 14px; padding: 13px 15px;
+            box-shadow: 0 6px 30px rgba(0,0,0,0.25); z-index: 9500;
+            width: min(96vw, 460px); border: 1px solid #dde4ff;
+        }
+        .le-num-in { width:100%; border:1px solid #ccc; border-radius:6px; padding:5px 4px; font-size:13px; box-sizing:border-box; text-align:center; }
+        .le-sm-btn { border:none; border-radius:6px; padding:6px 11px; cursor:pointer; font-size:13px; font-weight:bold; background:#6c757d; color:white; }
+        /* No highlight mode for PDF */
+        #cmr-page.no-hl .cmr-input { background: transparent !important; box-shadow: none !important; }
+        #cmr-page.no-hl .cmr-input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 1000px white inset !important;
+            -webkit-text-fill-color: black !important;
+        }
+        /* Empty date fields must not print the dd.mm.rrrr placeholder */
+        #cmr-page.no-hl input.empty-date { visibility: hidden !important; }
+
+        /* Carrier (field 5) styled display */
+        .carrier-display {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            overflow: hidden;
+            z-index: 5;
+            pointer-events: none;
+        }
+        .carrier-display .c-name {
+            font-size: 11pt;
+            font-weight: bold;
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.2;
+            margin-bottom: 1.5px;
+        }
+        .carrier-display .c-addr {
+            font-size: 7.5pt;
+            font-weight: normal;
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.4;
+        }
+        /* scan-overlay mode: only the backdrop and the input fields show */
+        #cmr-page.scan-mode .line-h, #cmr-page.scan-mode .line-v,
+        #cmr-page.scan-mode .lbl, #cmr-page.scan-mode .num,
+        #cmr-page.scan-mode .carrier-display { display: none !important; }
+        #cmr-page.scan-mode .cmr-input { background: rgba(255,253,231,0.55); }
+        #inp_carrier { opacity: 0 !important; pointer-events: none !important; }
+        .le-mode #carrier-display { display: none !important; }
+        .le-mode #inp_carrier { opacity: 1 !important; pointer-events: auto !important; }
+
+        /* PRINT STYLES */
+        @media print {
+            @page { size: A4; margin: 0; }
+            body { margin: 0; padding: 0; background: white; }
+            .nav-bar, #splash-screen, .controls, .view, .quick-pick, .geo-btn, h2, .card, #modal-overlay,
+            #toast-container, #sig-overlay { display: none !important; }
+            .sig-ui-btn, .sig-box button { display: none !important; }
+            #view-cmr { display: block !important; padding: 0; margin: 0; }
+            .cmr-wrapper { display: block; width: 210mm; height: 296mm; overflow: visible; margin: 0; padding: 0; }
+            .page {
+                width: 210mm !important; height: 296mm !important;
+                transform: none !important; margin: 0 !important;
+                box-shadow: none; border: none; position: absolute; top: 0; left: 0;
+            }
+            .cmr-input { background: transparent !important; border: none !important; box-shadow: none !important; }
+            .cmr-input:-webkit-autofill {
+                -webkit-box-shadow: 0 0 0 1000px white inset !important;
+                -webkit-text-fill-color: black !important;
+            }
+            input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
+            input.empty-date { visibility: hidden !important; }
+            #scan-bg { display: none !important; }
+            /* blank-sheet print: keep the grid and Nolan pre-print, hide data */
+            /* blank print keeps the pre-printed clause in field 14, hides only user data */
+            #cmr-page.print-blank .cmr-input:not(#inp_f14) { color: transparent !important; -webkit-text-fill-color: transparent !important; }
+            #cmr-page.print-blank .sig-canvas-inner { visibility: hidden !important; }
+            /* data-only print (onto a pre-printed CMR): hide all form graphics */
+            #cmr-page.data-only .line-h, #cmr-page.data-only .line-v,
+            #cmr-page.data-only .lbl, #cmr-page.data-only .num,
+            #cmr-page.data-only .carrier-display { display: none !important; }
+            #cmr-page.data-only.hide-f14 #inp_f14 { visibility: hidden !important; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
