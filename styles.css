@@ -217,6 +217,17 @@
             border-top: 1px solid #dfe5ee; pointer-events: none; user-select: none;
         }
 
+        /* STATS BAR CHART */
+        .chart-wrap { display: flex; align-items: flex-end; gap: 8px; height: 130px; padding: 6px 2px 0; }
+        .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+        .chart-bar {
+            width: 72%; max-width: 34px; border-radius: 7px 7px 0 0;
+            background: linear-gradient(180deg, #2f8bff, #0056b3);
+            height: 0; transition: height 0.7s cubic-bezier(0.25,1,0.3,1);
+        }
+        .chart-val { font-size: 11px; font-weight: 700; color: #0056b3; margin-bottom: 3px; min-height: 13px; }
+        .chart-lbl { font-size: 10px; color: #8894a6; margin-top: 5px; }
+
         /* NAV */
         .nav-bar {
             position: fixed; bottom: 0; left: 0; width: 100%; height: 60px;
@@ -370,7 +381,11 @@
             background: white; border-radius: 14px; padding: 13px 15px;
             box-shadow: 0 6px 30px rgba(0,0,0,0.25); z-index: 9500;
             width: min(96vw, 460px); border: 1px solid #dde4ff;
+            opacity: 0.97; transition: opacity 0.15s;
         }
+        #le-tb.le-tb-top { bottom: auto; top: 12px; }
+        #le-tb.le-tb-collapsed > *:not(#le-tb-head) { display: none !important; }
+        #le-tb.le-tb-collapsed { padding: 8px 12px; width: auto; }
         .le-num-in { width:100%; border:1px solid #ccc; border-radius:6px; padding:5px 4px; font-size:13px; box-sizing:border-box; text-align:center; }
         .le-sm-btn { border:none; border-radius:6px; padding:6px 11px; cursor:pointer; font-size:13px; font-weight:bold; background:#6c757d; color:white; }
         /* No highlight mode for PDF */

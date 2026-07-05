@@ -64,6 +64,7 @@ window.addEventListener('load', () => {
     });
     tagLEElements();
     initLEHandlers();
+    initLEGestures();
 
     const savedProf = localStorage.getItem('cmr_prof');
     if(savedProf) loadProfile();
@@ -89,6 +90,13 @@ window.addEventListener('load', () => {
 
     window.addEventListener('resize', () => {
         Object.values(sigPads).forEach(p => resizeSigCanvas(p));
+        // keep the signing overlay centred when the phone is rotated
+        const ov = document.getElementById('sig-overlay');
+        if(ov && ov.classList.contains('open')) setTimeout(() => fitOverlaySig(true), 60);
+    });
+    window.addEventListener('orientationchange', () => {
+        const ov = document.getElementById('sig-overlay');
+        if(ov && ov.classList.contains('open')) setTimeout(() => fitOverlaySig(true), 250);
     });
     window.addEventListener('beforeprint', preparePrintDates);
     window.addEventListener('afterprint', () => {
@@ -772,22 +780,68 @@ function renderStats() {
     if(!box) return;
     const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
     const now = new Date();
-    const month = hist.filter(h => {
-        const d = new Date(h.id);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    });
+    const period = (document.getElementById('stats-period') || {}).value || 'all';
+
+    const inPeriod = (d) => {
+        if(period === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        if(period === 'year')  return d.getFullYear() === now.getFullYear();
+        if(period === '30')    return (now - d) <= 30 * 864e5;
+        return true;
+    };
+    const sel = hist.filter(h => inPeriod(new Date(h.id)));
     const sum = (arr, key) => arr.reduce((a, h) => a + (parseInt(h[key], 10) || 0), 0);
-    const palIn  = sum(month, 'inp_pal_lin')  + sum(month, 'inp_pal_din');
-    const palOut = sum(month, 'inp_pal_lout') + sum(month, 'inp_pal_dout');
+    const palIn  = sum(sel, 'inp_pal_lin')  + sum(sel, 'inp_pal_din');
+    const palOut = sum(sel, 'inp_pal_lout') + sum(sel, 'inp_pal_dout');
     const tile = (num, label) =>
         `<div style="flex:1; background:#f4f7fb; border-radius:10px; padding:10px 4px;">` +
         `<div style="font-size:20px; font-weight:800; color:#0056b3;">${num}</div>` +
         `<div style="font-size:10px; color:#777; margin-top:2px;">${label}</div></div>`;
     box.innerHTML =
-        tile(hist.length, 'tras łącznie') +
-        tile(month.length, 'tras w tym mies.') +
-        tile(palIn, 'palety IN (mies.)') +
-        tile(palOut, 'palety OUT (mies.)');
+        tile(sel.length, 'tras') +
+        tile(palIn, 'palety IN') +
+        tile(palOut, 'palety OUT');
+
+    // animated bar chart: routes per month, last 6 months
+    const chart = document.getElementById('stats-chart');
+    if(!chart) return;
+    const MON = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
+    const buckets = [];
+    for(let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        buckets.push({ y: d.getFullYear(), m: d.getMonth(), label: MON[d.getMonth()], count: 0 });
+    }
+    hist.forEach(h => {
+        const d = new Date(h.id);
+        const b = buckets.find(x => x.y === d.getFullYear() && x.m === d.getMonth());
+        if(b) b.count++;
+    });
+    const max = Math.max(1, ...buckets.map(b => b.count));
+    chart.innerHTML =
+        '<div style="font-size:11px;color:#8894a6;margin-bottom:6px;">Trasy w ostatnich 6 miesiącach</div>' +
+        '<div class="chart-wrap">' +
+        buckets.map(b =>
+            `<div class="chart-col"><div class="chart-val">${b.count || ''}</div>` +
+            `<div class="chart-bar" data-h="${Math.round(b.count / max * 100)}"></div>` +
+            `<div class="chart-lbl">${b.label}</div></div>`
+        ).join('') +
+        '</div>';
+    // trigger the grow animation on next frame
+    requestAnimationFrame(() => {
+        chart.querySelectorAll('.chart-bar').forEach(bar => {
+            bar.style.height = (bar.getAttribute('data-h') * 1.1) + 'px';
+        });
+    });
+}
+
+function clearStats() {
+    const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    if(!hist.length) { toast('Archiwum jest już puste', 'info'); return; }
+    if(!confirm('Wyczyścić całe archiwum tras? Statystyki zostaną wyzerowane.\n\nTej operacji nie można cofnąć (zrób wcześniej Backup, jeśli chcesz zachować dane).')) return;
+    localStorage.removeItem('cmr_history');
+    renderStats();
+    renderHomeStats();
+    if(typeof loadHistoryList === 'function') loadHistoryList();
+    toast('Archiwum wyczyszczone', 'success');
 }
 
 function repeatLastRoute() {
@@ -1244,31 +1298,42 @@ function openOverlaySig(targetId, label) {
     document.getElementById('sig-overlay-title').textContent = label || 'Podpis';
     document.getElementById('sig-overlay').classList.add('open');
 
-    requestAnimationFrame(() => {
-        // Big LANDSCAPE signing area centred in the wrap; on confirm the
-        // signature is trimmed to its ink and contain-fitted to the box
-        const canvas = overlaySigPad.canvas;
-        const wrap = document.getElementById('sig-overlay-wrap');
-        const PAD = 14;
-        const availW = wrap.clientWidth  - PAD * 2;
-        const availH = wrap.clientHeight - PAD * 2;
-        const ASPECT = 2.2;               // wide, comfortable for a signature
-        let boxW = availW;
-        let boxH = boxW / ASPECT;
-        if(boxH > availH) { boxH = availH; boxW = boxH * ASPECT; }
-        const left = Math.round((wrap.clientWidth  - boxW) / 2);
-        const top  = Math.round((wrap.clientHeight - boxH) / 2);
-        // match resizeSigCanvas's resolution so the first stroke never resizes
-        const RES = Math.max(window.devicePixelRatio || 1, 2);
+    requestAnimationFrame(() => fitOverlaySig(false));
+}
 
-        canvas.style.width  = boxW + 'px';
-        canvas.style.height = boxH + 'px';
-        canvas.style.left   = left + 'px';
-        canvas.style.top    = top  + 'px';
-        canvas.width  = Math.round(boxW * RES);
-        canvas.height = Math.round(boxH * RES);
-        overlaySigPad.ctx.clearRect(0, 0, canvas.width, canvas.height);
-    });
+// Size the signing canvas to a big centred LANDSCAPE rectangle. Called on
+// open and again on rotate/resize (preserving the drawing) so it always
+// stays nicely centred in both portrait and landscape.
+function fitOverlaySig(preserve) {
+    const canvas = overlaySigPad.canvas;
+    const wrap = document.getElementById('sig-overlay-wrap');
+    if(!wrap || !wrap.clientWidth) return;
+    const PAD = 14;
+    const availW = wrap.clientWidth  - PAD * 2;
+    const availH = wrap.clientHeight - PAD * 2;
+    const ASPECT = 2.2;
+    let boxW = availW;
+    let boxH = boxW / ASPECT;
+    if(boxH > availH) { boxH = availH; boxW = boxH * ASPECT; }
+    const left = Math.round((wrap.clientWidth  - boxW) / 2);
+    const top  = Math.round((wrap.clientHeight - boxH) / 2);
+    const RES = Math.max(window.devicePixelRatio || 1, 2);
+    const newW = Math.round(boxW * RES), newH = Math.round(boxH * RES);
+
+    let snap = null;
+    if(preserve && canvas.width > 0 && canvas.height > 0) {
+        snap = document.createElement('canvas');
+        snap.width = canvas.width; snap.height = canvas.height;
+        snap.getContext('2d').drawImage(canvas, 0, 0);
+    }
+    canvas.style.width  = boxW + 'px';
+    canvas.style.height = boxH + 'px';
+    canvas.style.left   = left + 'px';
+    canvas.style.top    = top  + 'px';
+    canvas.width  = newW;
+    canvas.height = newH;
+    overlaySigPad.ctx.clearRect(0, 0, newW, newH);
+    if(snap) overlaySigPad.ctx.drawImage(snap, 0, 0, snap.width, snap.height, 0, 0, newW, newH);
 }
 
 function closeOverlaySig() {
@@ -1881,10 +1946,10 @@ function activateLEMode() {
     if(btn) { btn.textContent = '✅ Wyjdź z edytora'; btn.style.background = '#28a745'; }
     resetLEFilter();
     leZoomBase = getPageScale();
-    leZoomFactor = 1;
+    leZoomFactor = 1; leZoomX = 0; leZoomY = 0; lePinch = null;
     ensureLEGuides();
     injectLERHs();
-    toast('Edytor aktywny — przyciskami Linie/Napisy/Pola/Podpisy wybierz co edytujesz.', 'info', 5000);
+    toast('Edytor aktywny. Dwa palce = przesuń/powiększ. Pasek narzędzi możesz zwinąć ▾ lub przenieść ⇅.', 'info', 6000);
 }
 
 function deactivateLEMode() {
@@ -1898,6 +1963,7 @@ function deactivateLEMode() {
     if(btn) { btn.textContent = '📐 Edytuj układ pól'; btn.style.background = ''; }
     page.style.transform = '';
     page.style.transformOrigin = '';
+    leZoomFactor = 1; leZoomX = 0; leZoomY = 0; lePinch = null;
     const bm = document.getElementById('box-modal');
     if(bm) bm.style.display = 'none';
     removeLERHs();
@@ -1998,6 +2064,21 @@ function showLETB(el) {
 function hideLETB() {
     const tb = document.getElementById('le-tb');
     if(tb) tb.style.display = 'none';
+}
+
+// collapse the toolbar to just its header so it stops covering fields
+function toggleLETBCollapse() {
+    const tb = document.getElementById('le-tb');
+    const btn = document.getElementById('le-tb-min');
+    if(!tb) return;
+    const collapsed = tb.classList.toggle('le-tb-collapsed');
+    if(btn) btn.textContent = collapsed ? '▸' : '▾';
+}
+
+// flip the toolbar between the bottom and the top of the screen
+function moveLETB() {
+    const tb = document.getElementById('le-tb');
+    if(tb) tb.classList.toggle('le-tb-top');
 }
 
 // ---- Toolbar apply ----
@@ -2255,15 +2336,56 @@ function onLEEnd() {
     }
 }
 
-// ---- Editor zoom ----
-let leZoomBase = 1, leZoomFactor = 1;
+// ---- Editor zoom & pan ----
+let leZoomBase = 1, leZoomFactor = 1, leZoomX = 0, leZoomY = 0;
+let lePinch = null;
+
+function applyLETransform() {
+    const page = document.getElementById('cmr-page');
+    page.style.transformOrigin = 'top left';
+    page.style.transform =
+        'translate(' + leZoomX.toFixed(1) + 'px,' + leZoomY.toFixed(1) + 'px) ' +
+        'scale(' + (leZoomBase * leZoomFactor).toFixed(3) + ')';
+}
 
 function setLEZoom(f) {
     if(!leActive) return;
-    const page = document.getElementById('cmr-page');
-    leZoomFactor = (f === 0) ? 1 : Math.min(4, Math.max(0.4, leZoomFactor * f));
-    page.style.transformOrigin = 'top left';
-    page.style.transform = 'scale(' + (leZoomBase * leZoomFactor).toFixed(3) + ')';
+    if(f === 0) { leZoomFactor = 1; leZoomX = 0; leZoomY = 0; }
+    else leZoomFactor = Math.min(5, Math.max(0.4, leZoomFactor * f));
+    applyLETransform();
+}
+
+// Two-finger drag = pan, pinch = zoom (works while zoomed in the editor).
+// One finger still moves the selected element.
+function initLEGestures() {
+    const wrap = document.querySelector('.cmr-wrapper');
+    if(!wrap) return;
+    wrap.addEventListener('touchstart', (e) => {
+        if(!leActive || e.touches.length !== 2) return;
+        leDrag = null;                 // cancel any element drag in progress
+        const a = e.touches[0], b = e.touches[1];
+        lePinch = {
+            d0: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1,
+            f0: leZoomFactor,
+            mx: (a.clientX + b.clientX) / 2, my: (a.clientY + b.clientY) / 2,
+            x0: leZoomX, y0: leZoomY
+        };
+        e.preventDefault();
+    }, { passive: false });
+    wrap.addEventListener('touchmove', (e) => {
+        if(!leActive || !lePinch || e.touches.length !== 2) return;
+        e.preventDefault();
+        const a = e.touches[0], b = e.touches[1];
+        const d  = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+        const mx = (a.clientX + b.clientX) / 2, my = (a.clientY + b.clientY) / 2;
+        leZoomFactor = Math.min(5, Math.max(0.4, lePinch.f0 * d / lePinch.d0));
+        leZoomX = lePinch.x0 + (mx - lePinch.mx);
+        leZoomY = lePinch.y0 + (my - lePinch.my);
+        applyLETransform();
+    }, { passive: false });
+    const endPinch = (e) => { if(!e.touches || e.touches.length < 2) lePinch = null; };
+    wrap.addEventListener('touchend', endPinch);
+    wrap.addEventListener('touchcancel', endPinch);
 }
 
 // ---- Alignment guides ----
