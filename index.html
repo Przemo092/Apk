@@ -341,9 +341,16 @@ www.nolantransport.com</textarea>
             <!-- FIELD 20 -->
             <div class="num" style="top:279mm; left:196mm;">20</div>
             <div class="lbl" style="top:279mm; left:137mm;">Place and date: signature. Lieu et date: signature</div>
-            <input id="inp_place20" class="cmr-input" style="top:283mm; left:137mm; width:30mm; height:8mm; background:transparent;">
-            <input id="inp_date20" class="cmr-input" type="date" style="top:283mm; left:167mm; width:34mm; height:8mm; background:transparent;">
+            <input id="inp_place20" class="cmr-input" style="top:282mm; left:137mm; width:30mm; height:4mm; background:transparent; font-size:8pt;">
+            <input id="inp_date20" class="cmr-input" type="date" style="top:282mm; left:167mm; width:34mm; height:4mm; background:transparent; font-size:8pt;">
             <div class="geo-btn" style="top:278mm; left:132mm;" onclick="getGeo('inp_place20')">📍</div>
+
+            <!-- SIG 3: Field 20 signature (added last so element IDs stay stable) -->
+            <div class="sig-box" style="top:285.5mm; left:137mm; width:64mm; height:4.5mm;">
+                <canvas id="sig3" class="sig-canvas-inner"></canvas>
+                <button class="sig-ui-btn" style="top:0; right:20px; background:#dc3545;" onclick="clearSig('sig3')">X</button>
+                <button class="sig-ui-btn" style="top:0; right:0; background:#0056b3;" onclick="openOverlaySig('sig3','Podpis (pole 20)')">✍️</button>
+            </div>
         </div>
     </div>
 </div>
@@ -622,7 +629,7 @@ www.nolantransport.com</textarea>
 
 <script>
 // Build marker — read by the auto-updater and passed to app.js.
-window.APP_BUILD = 'B-2026-07-05-03';
+window.APP_BUILD = 'B-2026-07-05-04';
 </script>
 <script defer src="app.js"></script>
 </body>

@@ -52,6 +52,7 @@ window.addEventListener('load', () => {
     loadDb();
     setupSignaturePad('sig1');
     setupSignaturePad('sig2');
+    setupSignaturePad('sig3');
     setupSignaturePad('profile-sig-canvas');
     setupOverlaySigPad();
     initPinchZoom();
@@ -65,6 +66,7 @@ window.addEventListener('load', () => {
     tagLEElements();
     initLEHandlers();
     initLEGestures();
+    initLETBDrag();
 
     const savedProf = localStorage.getItem('cmr_prof');
     if(savedProf) loadProfile();
@@ -862,7 +864,7 @@ function saveCurrentToHistory() {
     CMR_FIELD_IDS.forEach(id => { data[id] = document.getElementById(id)?.value || ''; });
 
     // Save sig thumbnails
-    ['sig1','sig2'].forEach(id => {
+    ['sig1','sig2','sig3'].forEach(id => {
         const pad = sigPads[id];
         if(pad && pad.canvas.width > 0) data['_' + id] = pad.canvas.toDataURL('image/png');
     });
@@ -919,7 +921,7 @@ function restoreHistory(id) {
     });
 
     // Restore signatures
-    ['sig1','sig2'].forEach(id => {
+    ['sig1','sig2','sig3'].forEach(id => {
         const key = '_' + id;
         const pad = sigPads[id];
         if(item[key] && pad) {
@@ -1425,7 +1427,7 @@ function saveDraft() {
         if(el) fields[id] = el.value;
     });
     const data = { fields };
-    ['sig1','sig2'].forEach(id => {
+    ['sig1','sig2','sig3'].forEach(id => {
         const pad = sigPads[id];
         if(pad && pad.canvas.width > 0) data[id] = pad.canvas.toDataURL('image/png');
     });
@@ -1453,7 +1455,7 @@ function loadDraft() {
                 if(el) el.value = val;
             });
         }
-        ['sig1','sig2'].forEach(id => {
+        ['sig1','sig2','sig3'].forEach(id => {
             if(data[id]) {
                 const pad = sigPads[id];
                 if(!pad) return;
@@ -1482,6 +1484,7 @@ function newCMR() {
     if(f14) f14.value = DEFAULT_F14;
     clearSig('sig1');
     clearSig('sig2');
+    clearSig('sig3');
     clearValidation();
     updateCarrierDisplay();
     applyDocDefaults();
@@ -1949,7 +1952,7 @@ function activateLEMode() {
     leZoomFactor = 1; leZoomX = 0; leZoomY = 0; lePinch = null;
     ensureLEGuides();
     injectLERHs();
-    toast('Edytor aktywny. Dwa palce = przesuń/powiększ. Pasek narzędzi możesz zwinąć ▾ lub przenieść ⇅.', 'info', 6000);
+    toast('Edytor: przesuwaj widok palcem. Aby edytować pole — puknij je 2× (aktywuje się), wtedy przeciągaj. Pasek zwiń ▾ / przenieś ⇅ / przeciągnij.', 'info', 7000);
 }
 
 function deactivateLEMode() {
@@ -1963,7 +1966,7 @@ function deactivateLEMode() {
     if(btn) { btn.textContent = '📐 Edytuj układ pól'; btn.style.background = ''; }
     page.style.transform = '';
     page.style.transformOrigin = '';
-    leZoomFactor = 1; leZoomX = 0; leZoomY = 0; lePinch = null;
+    leZoomFactor = 1; leZoomX = 0; leZoomY = 0; lePinch = null; lePan = null;
     const bm = document.getElementById('box-modal');
     if(bm) bm.style.display = 'none';
     removeLERHs();
@@ -2079,6 +2082,44 @@ function toggleLETBCollapse() {
 function moveLETB() {
     const tb = document.getElementById('le-tb');
     if(tb) tb.classList.toggle('le-tb-top');
+}
+
+// let the user freely drag the toolbar by its header
+function initLETBDrag() {
+    const tb = document.getElementById('le-tb');
+    const head = document.getElementById('le-tb-head');
+    if(!tb || !head) return;
+    let d = null;
+    const down = (e) => {
+        if(e.target.tagName === 'BUTTON') return;   // buttons keep working
+        const t = e.touches ? e.touches[0] : e;
+        const r = tb.getBoundingClientRect();
+        d = { dx: t.clientX - r.left, dy: t.clientY - r.top };
+        // switch to absolute left/top positioning (drop the centering transform)
+        tb.style.transform = 'none';
+        tb.style.left = r.left + 'px';
+        tb.style.top  = r.top + 'px';
+        tb.style.bottom = 'auto';
+        tb.classList.remove('le-tb-top');
+        e.preventDefault();
+    };
+    const move = (e) => {
+        if(!d) return;
+        const t = e.touches ? e.touches[0] : e;
+        let nx = t.clientX - d.dx, ny = t.clientY - d.dy;
+        nx = Math.max(4, Math.min(window.innerWidth  - tb.offsetWidth  - 4, nx));
+        ny = Math.max(4, Math.min(window.innerHeight - tb.offsetHeight - 4, ny));
+        tb.style.left = nx + 'px';
+        tb.style.top  = ny + 'px';
+        e.preventDefault();
+    };
+    const up = () => { d = null; };
+    head.addEventListener('touchstart', down, { passive: false });
+    head.addEventListener('mousedown', down);
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('mousemove', move);
+    document.addEventListener('touchend', up);
+    document.addEventListener('mouseup', up);
 }
 
 // ---- Toolbar apply ----
@@ -2355,37 +2396,64 @@ function setLEZoom(f) {
     applyLETransform();
 }
 
-// Two-finger drag = pan, pinch = zoom (works while zoomed in the editor).
-// One finger still moves the selected element.
+// Editor navigation:
+//  · one finger on empty space / inactive element = PAN the view
+//  · two fingers = pan + pinch-zoom
+//  · dragging the ACTIVE element (or its resize handle) moves/resizes it
+let lePan = null;
+
 function initLEGestures() {
     const wrap = document.querySelector('.cmr-wrapper');
     if(!wrap) return;
     wrap.addEventListener('touchstart', (e) => {
-        if(!leActive || e.touches.length !== 2) return;
-        leDrag = null;                 // cancel any element drag in progress
-        const a = e.touches[0], b = e.touches[1];
-        lePinch = {
-            d0: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1,
-            f0: leZoomFactor,
-            mx: (a.clientX + b.clientX) / 2, my: (a.clientY + b.clientY) / 2,
-            x0: leZoomX, y0: leZoomY
-        };
-        e.preventDefault();
+        if(!leActive) return;
+        if(e.touches.length === 2) {
+            leDrag = null; lePan = null;
+            const a = e.touches[0], b = e.touches[1];
+            lePinch = {
+                d0: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1,
+                f0: leZoomFactor,
+                mx: (a.clientX + b.clientX) / 2, my: (a.clientY + b.clientY) / 2,
+                x0: leZoomX, y0: leZoomY
+            };
+            e.preventDefault();
+            return;
+        }
+        if(e.touches.length === 1) {
+            const t = e.target;
+            const onActive = leSelected && (t === leSelected || (leSelected.contains && leSelected.contains(t)));
+            const onHandle = t.classList && t.classList.contains('le-rh');
+            if(onActive || onHandle || leDrag) return;      // element drag handles it
+            lePan = { x0: e.touches[0].clientX, y0: e.touches[0].clientY, ox: leZoomX, oy: leZoomY };
+        }
     }, { passive: false });
     wrap.addEventListener('touchmove', (e) => {
-        if(!leActive || !lePinch || e.touches.length !== 2) return;
-        e.preventDefault();
-        const a = e.touches[0], b = e.touches[1];
-        const d  = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-        const mx = (a.clientX + b.clientX) / 2, my = (a.clientY + b.clientY) / 2;
-        leZoomFactor = Math.min(5, Math.max(0.4, lePinch.f0 * d / lePinch.d0));
-        leZoomX = lePinch.x0 + (mx - lePinch.mx);
-        leZoomY = lePinch.y0 + (my - lePinch.my);
-        applyLETransform();
+        if(!leActive) return;
+        if(lePinch && e.touches.length === 2) {
+            e.preventDefault();
+            const a = e.touches[0], b = e.touches[1];
+            const d  = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+            const mx = (a.clientX + b.clientX) / 2, my = (a.clientY + b.clientY) / 2;
+            leZoomFactor = Math.min(5, Math.max(0.4, lePinch.f0 * d / lePinch.d0));
+            leZoomX = lePinch.x0 + (mx - lePinch.mx);
+            leZoomY = lePinch.y0 + (my - lePinch.my);
+            applyLETransform();
+            return;
+        }
+        if(lePan && !leDrag && e.touches.length === 1) {
+            e.preventDefault();
+            const t = e.touches[0];
+            leZoomX = lePan.ox + (t.clientX - lePan.x0);
+            leZoomY = lePan.oy + (t.clientY - lePan.y0);
+            applyLETransform();
+        }
     }, { passive: false });
-    const endPinch = (e) => { if(!e.touches || e.touches.length < 2) lePinch = null; };
-    wrap.addEventListener('touchend', endPinch);
-    wrap.addEventListener('touchcancel', endPinch);
+    const endG = (e) => {
+        if(!e.touches || e.touches.length < 2) lePinch = null;
+        if(!e.touches || e.touches.length < 1) lePan = null;
+    };
+    wrap.addEventListener('touchend', endG);
+    wrap.addEventListener('touchcancel', endG);
 }
 
 // ---- Alignment guides ----
@@ -2689,17 +2757,43 @@ function resetFullLayout() {
 }
 
 // ---- Init event handlers ----
+let leLastTapTime = 0, leLastTapEl = null;
+
 function attachLEHandlers(el) {
-    const onDown = (e) => {
+    // TOUCH model: double-tap ACTIVATES an element; once active, dragging it
+    // moves it. A single touch on an inactive element does nothing, so one
+    // finger freely pans the zoomed sheet without shuffling every box around.
+    el.addEventListener('touchstart', (e) => {
+        if(!leActive) return;
+        if(e.target.tagName === 'BUTTON' || e.target.tagName === 'CANVAS') return;
+        if(e.touches.length > 1) return;                 // two fingers → pan/zoom
+        const now = Date.now();
+        const dbl = (now - leLastTapTime < 330) && leLastTapEl === el;
+        leLastTapTime = now; leLastTapEl = el;
+        if(dbl) {                                          // activate this element
+            e.preventDefault(); e.stopPropagation();
+            selectLE(el);
+            return;
+        }
+        if(leSelected === el) {                            // already active → drag it
+            const lid = el.dataset.leId;
+            if(!(lid && leLockedIds.has(lid))) {
+                e.preventDefault(); e.stopPropagation();
+                startLEDrag(e, el, 'move');
+            }
+        }
+        // otherwise: let the touch bubble up so the view can pan
+    }, {passive: false});
+
+    // MOUSE (desktop): a click selects and lets you drag immediately
+    el.addEventListener('mousedown', (e) => {
         if(!leActive) return;
         if(e.target.tagName === 'BUTTON' || e.target.tagName === 'CANVAS') return;
         e.preventDefault();
         selectLE(el);
         const lid = el.dataset.leId;
         if(!(lid && leLockedIds.has(lid))) startLEDrag(e, el, 'move');
-    };
-    el.addEventListener('touchstart', onDown, {passive: false});
-    el.addEventListener('mousedown', onDown);
+    });
 }
 
 function initLEHandlers() {
