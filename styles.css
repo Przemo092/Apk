@@ -209,11 +209,12 @@
             border: none; padding: 8px 14px; border-radius: 8px; font-size: 14px;
             font-weight: bold; cursor: pointer; color: white;
         }
-        #sig-overlay-wrap { flex: 1; position: relative; background: #ccd4de; overflow: hidden; }
-        #overlay-sig-canvas { position: absolute; display: block; cursor: crosshair; touch-action: none; background: white; box-shadow: 0 4px 24px rgba(0,0,0,0.22); border-radius: 6px; border: 3px dashed #0056b3; box-sizing: border-box; }
+        #sig-overlay-wrap { flex: 1; position: relative; background: linear-gradient(160deg,#eef2f7,#d7dee8); overflow: hidden; }
+        #overlay-sig-canvas { position: absolute; display: block; cursor: crosshair; touch-action: none; background: white; box-shadow: 0 6px 26px rgba(0,0,0,0.18); border-radius: 10px; border: 2px solid #2a2a2a; box-sizing: border-box; }
         #sig-overlay-hint {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            color: #ccc; font-size: 15px; pointer-events: none; user-select: none; white-space: nowrap;
+            flex-shrink: 0; text-align: center; color: #33455e; font-size: 13px;
+            line-height: 1.4; padding: 11px 16px; background: #eef2f7;
+            border-top: 1px solid #dfe5ee; pointer-events: none; user-select: none;
         }
 
         /* NAV */

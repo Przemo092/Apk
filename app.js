@@ -1158,8 +1158,9 @@ function attachSigEvents(pad) {
         e.preventDefault();
         resizeSigCanvas(pad);
         pad.drawing = true;
-        const rect = canvas.getBoundingClientRect();
-        ctx.lineWidth   = 1.5 * (canvas.width / rect.width);
+        // pen width proportional to canvas height so the stroke keeps the
+        // same visual weight after the signature is scaled into the CMR box
+        ctx.lineWidth   = Math.max(2.5, canvas.height * 0.02);
         ctx.lineCap     = 'round';
         ctx.lineJoin    = 'round';
         ctx.strokeStyle = '#000';
@@ -1244,21 +1245,28 @@ function openOverlaySig(targetId, label) {
     document.getElementById('sig-overlay').classList.add('open');
 
     requestAnimationFrame(() => {
-        // Full-screen drawing area — big and comfortable; on confirm the
+        // Big LANDSCAPE signing area centred in the wrap; on confirm the
         // signature is trimmed to its ink and contain-fitted to the box
         const canvas = overlaySigPad.canvas;
         const wrap = document.getElementById('sig-overlay-wrap');
-        const PAD = 10;
-        const boxW = wrap.clientWidth  - PAD * 2;
-        const boxH = wrap.clientHeight - PAD * 2;
-        const DPR  = window.devicePixelRatio || 1;
+        const PAD = 14;
+        const availW = wrap.clientWidth  - PAD * 2;
+        const availH = wrap.clientHeight - PAD * 2;
+        const ASPECT = 2.2;               // wide, comfortable for a signature
+        let boxW = availW;
+        let boxH = boxW / ASPECT;
+        if(boxH > availH) { boxH = availH; boxW = boxH * ASPECT; }
+        const left = Math.round((wrap.clientWidth  - boxW) / 2);
+        const top  = Math.round((wrap.clientHeight - boxH) / 2);
+        // match resizeSigCanvas's resolution so the first stroke never resizes
+        const RES = Math.max(window.devicePixelRatio || 1, 2);
 
         canvas.style.width  = boxW + 'px';
         canvas.style.height = boxH + 'px';
-        canvas.style.left   = PAD + 'px';
-        canvas.style.top    = PAD + 'px';
-        canvas.width  = Math.round(boxW * DPR);
-        canvas.height = Math.round(boxH * DPR);
+        canvas.style.left   = left + 'px';
+        canvas.style.top    = top  + 'px';
+        canvas.width  = Math.round(boxW * RES);
+        canvas.height = Math.round(boxH * RES);
         overlaySigPad.ctx.clearRect(0, 0, canvas.width, canvas.height);
     });
 }
