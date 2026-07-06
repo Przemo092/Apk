@@ -50,6 +50,7 @@ window.addEventListener('load', () => {
     }, reducedMotion ? 1200 : 4600);
 
     loadDb();
+    enableTextWrap();   // turn single-line text inputs into wrapping fields
     setupSignaturePad('sig1');
     setupSignaturePad('sig2');
     setupSignaturePad('sig3');
@@ -1166,6 +1167,26 @@ function importData(input) {
 // SIGNATURE PADS
 // ============================================================
 const sigPads = {};
+
+// Convert single-line text inputs into wrapping multi-line fields so text
+// flows into extra rows when a field is narrowed. Dates and datalist
+// (pallet) inputs stay as <input>. Runs once at startup, before tagging /
+// handlers / layout load, so element order and IDs are preserved.
+function enableTextWrap() {
+    document.querySelectorAll('#cmr-page input.cmr-input').forEach(inp => {
+        if(inp.type === 'date' || inp.hasAttribute('list')) return;
+        const ta = document.createElement('textarea');
+        ta.id = inp.id;
+        ta.className = inp.className;
+        ta.setAttribute('style', inp.getAttribute('style') || '');
+        ta.value = inp.value || '';
+        ['placeholder', 'inputmode', 'maxlength'].forEach(a => {
+            if(inp.hasAttribute(a)) ta.setAttribute(a, inp.getAttribute(a));
+        });
+        ta.rows = 1;
+        inp.parentNode.replaceChild(ta, inp);
+    });
+}
 
 function setupSignaturePad(id) {
     const canvas = document.getElementById(id);

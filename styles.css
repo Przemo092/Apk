@@ -295,6 +295,11 @@
             font-family: 'Courier New', Courier, monospace; font-size: 10pt; font-weight: bold; color: black;
             padding: 2px; resize: none; outline: none; z-index: 1; text-align: left;
         }
+        /* text fields (textareas) wrap into extra rows when narrowed */
+        textarea.cmr-input {
+            white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word;
+            overflow: hidden; line-height: 1.15; display: block;
+        }
         .cmr-input.invalid { background: #ffe0e0 !important; box-shadow: 0 0 0 2px #dc3545; }
         /* no calendar icon / dropdown arrow on CMR date fields — Android and
            desktop render different decorations, strip them all (tapping the
