@@ -31,6 +31,107 @@ const KEEP_ON_NEW = ['inp_carrier','inp_tractor','inp_trailer'];
 // Required fields for validation
 const REQUIRED_FIELDS = ['inp_sender','inp_consignee'];
 
+// Max entries kept in the route archive (oldest are dropped first)
+const HISTORY_LIMIT = 150;
+
+// ============================================================
+// SAFE STORAGE — all localStorage access goes through these helpers
+// so corrupted JSON or a full quota never crashes the app.
+// ============================================================
+function isQuotaError(e) {
+    return !!e && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+                   e.code === 22 || e.code === 1014);
+}
+
+let quotaToastAt = 0;
+function notifyQuotaFull() {
+    // throttle — autosave may fire this repeatedly
+    if(Date.now() - quotaToastAt < 15000) return;
+    quotaToastAt = Date.now();
+    try { toast('⚠️ Pamięć aplikacji jest pełna — usuń stare trasy z archiwum lub podkład skanu, inaczej zmiany nie zostaną zapisane', 'error', 7000); } catch(e) {}
+}
+
+// Read a JSON value. Returns `fallback` when the key is missing or the
+// stored value is corrupted (corrupted entries are archived, not deleted).
+function storageGet(key, fallback) {
+    let raw = null;
+    try { raw = localStorage.getItem(key); } catch(e) { console.warn('storageGet', key, e); return fallback; }
+    if(raw === null || raw === undefined || raw === '') return fallback;
+    try {
+        const v = JSON.parse(raw);
+        return (v === null || v === undefined) ? fallback : v;
+    } catch(e) {
+        console.error('Uszkodzone dane w localStorage:', key, e);
+        try { localStorage.setItem(key + '_corrupt', raw); localStorage.removeItem(key); } catch(e2) {}
+        try { toast('⚠️ Uszkodzone dane (' + key + ') — przywrócono wartość domyślną', 'error', 5000); } catch(e3) {}
+        return fallback;
+    }
+}
+
+// Read a raw string value (data URLs, PIN etc.)
+function storageGetRaw(key, fallback = null) {
+    try {
+        const v = localStorage.getItem(key);
+        return (v === null) ? fallback : v;
+    } catch(e) { console.warn('storageGetRaw', key, e); return fallback; }
+}
+
+// Write a value. Strings are stored as-is, everything else as JSON.
+// Returns true on success, false on failure (quota, serialisation).
+function storageSet(key, value) {
+    let str;
+    try {
+        str = (typeof value === 'string') ? value : JSON.stringify(value);
+    } catch(e) { console.error('storageSet serialize', key, e); return false; }
+    try {
+        localStorage.setItem(key, str);
+        return true;
+    } catch(e) {
+        console.error('storageSet', key, e);
+        if(isQuotaError(e)) notifyQuotaFull();
+        else { try { toast('❌ Nie udało się zapisać danych (' + key + ')', 'error', 4000); } catch(e2) {} }
+        return false;
+    }
+}
+
+function storageRemove(key) {
+    try { localStorage.removeItem(key); return true; }
+    catch(e) { console.warn('storageRemove', key, e); return false; }
+}
+
+// Convenience accessors for the most used arrays/objects
+function getHistory() { const h = storageGet('cmr_history', []); return Array.isArray(h) ? h : []; }
+function getDb()      { const d = storageGet('cmr_db', []);      return Array.isArray(d) ? d : []; }
+function getProfile() { const p = storageGet('cmr_prof', {});    return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }
+
+// ============================================================
+// GLOBAL ERROR HANDLING
+// ============================================================
+let lastErrToastAt = 0;
+function reportError(prefix, err) {
+    console.error(prefix, err);
+    if(Date.now() - lastErrToastAt < 4000) return;   // don't spam the user
+    lastErrToastAt = Date.now();
+    const msg = (err && (err.message || err.reason && err.reason.message)) || String(err || '');
+    try { toast('⚠️ Wystąpił błąd: ' + msg.slice(0, 80), 'error', 5000); } catch(e) {}
+}
+
+window.addEventListener('error', (e) => {
+    // ignore failed loads of 3rd-party scripts/images (handled where used)
+    if(e && e.target && e.target !== window && !(e.error)) return;
+    reportError('Nieobsłużony błąd:', e.error || e.message);
+});
+window.addEventListener('unhandledrejection', (e) => {
+    reportError('Nieobsłużona obietnica:', e.reason);
+});
+
+// Run one init step; a failure is logged but does not stop the others.
+function safeInit(name, fn) {
+    try { fn(); }
+    catch(e) { console.error('Błąd inicjalizacji [' + name + ']:', e); return false; }
+    return true;
+}
+
 // ============================================================
 // INIT
 // ============================================================
@@ -49,46 +150,57 @@ window.addEventListener('load', () => {
         setTimeout(() => s.style.display = 'none', 800);
     }, reducedMotion ? 1200 : 4600);
 
-    loadDb();
-    enableTextWrap();   // turn single-line text inputs into wrapping fields
-    setupSignaturePad('sig1');
-    setupSignaturePad('sig2');
-    setupSignaturePad('sig3');
-    setupSignaturePad('profile-sig-canvas');
-    setupOverlaySigPad();
-    initPinchZoom();
+    // Each step is isolated: one failing module must not stop the rest.
+    // Order matters (enableTextWrap before tagging / layout load).
+    safeInit('loadDb', loadDb);
+    safeInit('enableTextWrap', enableTextWrap);   // turn single-line text inputs into wrapping fields
+    safeInit('sigPads', () => {
+        setupSignaturePad('sig1');
+        setupSignaturePad('sig2');
+        setupSignaturePad('sig3');
+        setupSignaturePad('profile-sig-canvas');
+    });
+    safeInit('overlaySigPad', setupOverlaySigPad);
+    safeInit('pinchZoom', initPinchZoom);
     // Chrome autofill would paint filled fields pale blue (visible in print);
     // skip datalist-driven fields so their suggestions keep working
-    document.querySelectorAll('.cmr-input').forEach(el => {
-        if(!el.hasAttribute('list')) el.setAttribute('autocomplete', 'off');
-        el.setAttribute('autocorrect', 'off');
-        el.setAttribute('spellcheck', 'false');
+    safeInit('autocomplete', () => {
+        document.querySelectorAll('.cmr-input').forEach(el => {
+            if(!el.hasAttribute('list')) el.setAttribute('autocomplete', 'off');
+            el.setAttribute('autocorrect', 'off');
+            el.setAttribute('spellcheck', 'false');
+        });
     });
-    tagLEElements();
-    initLEHandlers();
-    initLEGestures();
-    initLETBDrag();
+    safeInit('tagLEElements', tagLEElements);
+    safeInit('initLEHandlers', initLEHandlers);
+    safeInit('initLEGestures', initLEGestures);
+    safeInit('initLETBDrag', initLETBDrag);
 
-    const savedProf = localStorage.getItem('cmr_prof');
-    if(savedProf) loadProfile();
+    safeInit('loadProfile', () => {
+        if(storageGetRaw('cmr_prof')) loadProfile();
+    });
 
-    initSigImgDrag();
-    captureIconAnchors();
-    loadFullLayout();
-    anchorIcons();
-    syncRemoteLayout();
-    scheduleUpdateChecks();
-    loadDraft();
-    updateCarrierDisplay();
-    applyDocDefaults();
-    const carrierTA = document.getElementById('inp_carrier');
-    if(carrierTA) carrierTA.addEventListener('input', updateCarrierDisplay);
-    loadHistoryList();
+    safeInit('initSigImgDrag', initSigImgDrag);
+    safeInit('captureIconAnchors', captureIconAnchors);
+    safeInit('loadFullLayout', loadFullLayout);
+    safeInit('anchorIcons', anchorIcons);
+    safeInit('syncRemoteLayout', () => { syncRemoteLayout(); });
+    safeInit('scheduleUpdateChecks', scheduleUpdateChecks);
+    safeInit('loadDraft', loadDraft);
+    safeInit('updateCarrierDisplay', updateCarrierDisplay);
+    safeInit('applyDocDefaults', applyDocDefaults);
+    safeInit('carrierInput', () => {
+        const carrierTA = document.getElementById('inp_carrier');
+        if(carrierTA) carrierTA.addEventListener('input', updateCarrierDisplay);
+    });
+    safeInit('loadHistoryList', loadHistoryList);
 
     // Auto-save on any CMR input change
-    document.querySelectorAll('#view-cmr .cmr-input[id], #view-cmr input[id]').forEach(el => {
-        el.addEventListener('input', scheduleDraftSave);
-        el.addEventListener('change', scheduleDraftSave);
+    safeInit('autosave', () => {
+        document.querySelectorAll('#view-cmr .cmr-input[id], #view-cmr input[id]').forEach(el => {
+            el.addEventListener('input', scheduleDraftSave);
+            el.addEventListener('change', scheduleDraftSave);
+        });
     });
 
     window.addEventListener('resize', () => {
@@ -109,11 +221,12 @@ window.addEventListener('load', () => {
         p.classList.remove('data-only');
         p.classList.remove('hide-f14');
     });
-    applyScanBg();
-    markEmptyDates();
+    safeInit('applyScanBg', applyScanBg);
+    safeInit('markEmptyDates', markEmptyDates);
 
     // PWA service worker — auto-reload once when a new version takes control
-    if('serviceWorker' in navigator) {
+    safeInit('serviceWorker', () => {
+        if(!('serviceWorker' in navigator)) return;
         navigator.serviceWorker.register('sw.js?v=' + APP_BUILD, { updateViaCache: 'none' }).then(reg => {
             if(reg && reg.update) reg.update();
         }).catch(() => {});
@@ -123,20 +236,18 @@ window.addEventListener('load', () => {
             swReloaded = true;
             location.reload();
         });
-    }
+    });
 
     // show the running build number in the profile footer
     const bt = document.getElementById('build-tag');
     if(bt) bt.textContent = 'Wersja aplikacji: ' + APP_BUILD;
-    renderStats();
-    renderHomeStats();
+    safeInit('renderStats', renderStats);
+    safeInit('renderHomeStats', renderHomeStats);
 
     // power-user option: skip the Start menu and open the CMR form directly
-    try {
-        if(JSON.parse(localStorage.getItem('cmr_prof') || '{}').skiphome) {
-            nav('cmr', navItem('cmr'));
-        }
-    } catch(e) {}
+    safeInit('skiphome', () => {
+        if(getProfile().skiphome) nav('cmr', navItem('cmr'));
+    });
 });
 
 // ============================================================
@@ -165,7 +276,7 @@ function navItem(v) {
 }
 
 function homeLastRoute() {
-    const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    const hist = getHistory();
     if(!hist.length) { toast('Archiwum jest puste — najpierw zapisz trasę', 'error'); return; }
     nav('cmr', navItem('cmr'));
     restoreHistory(hist[0].id);
@@ -174,13 +285,13 @@ function homeLastRoute() {
 function renderHomeStats() {
     const box = document.getElementById('home-stats');
     if(!box) return;
-    const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    const hist = getHistory();
     const now = new Date();
     const month = hist.filter(h => {
         const d = new Date(h.id);
         return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });
-    const db = JSON.parse(localStorage.getItem('cmr_db') || '[]');
+    const db = getDb();
     box.innerHTML =
         `<div class="hs"><b>${hist.length}</b><span>tras łącznie</span></div>` +
         `<div class="hs"><b>${month.length}</b><span>w tym miesiącu</span></div>` +
@@ -347,7 +458,7 @@ function applyGeom(snap) {
 }
 
 function saveOverlayLayout() {
-    localStorage.setItem('cmr_layout_overlay', JSON.stringify({ ver: LE_LAYOUT_VER, geom: captureGeom() }));
+    storageSet('cmr_layout_overlay', { ver: LE_LAYOUT_VER, geom: captureGeom() });
 }
 
 function setScanMode(on) {
@@ -629,7 +740,7 @@ function getGeo(targetId) {
                     unique.forEach(name => {
                         const d = document.createElement('div');
                         d.className = 'modal-item';
-                        d.innerHTML = `<b>${name}</b><br><small>${country}</small>`;
+                        d.innerHTML = `<b>${escapeHtml(name)}</b><br><small>${escapeHtml(country)}</small>`;
                         d.onclick = () => {
                             document.getElementById(targetId).value = `${name}, ${country}. ${today}`;
                             scheduleDraftSave();
@@ -675,7 +786,7 @@ function findNearbyBiz(targetId) {
 
 async function searchBizAround(lat, lon, targetId) {
     toast('🏢 Szukanie firm w pobliżu…', 'info', 3000);
-    const R = parseInt(JSON.parse(localStorage.getItem('cmr_prof') || '{}').bizR || '5000');
+    const R = parseInt(getProfile().bizR || '5000');
     const q = `[out:json][timeout:15];(` +
         `node(around:${R},${lat},${lon})[name][office];` +
         `node(around:${R},${lat},${lon})[name][shop];` +
@@ -758,7 +869,7 @@ async function pickBiz(item, targetId) {
 // HISTORY
 // ============================================================
 function exportHistoryCSV() {
-    const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    const hist = getHistory();
     if(!hist.length) { toast('Archiwum jest puste', 'error'); return; }
     const cols = ['date','inp_sender','inp_consignee','inp_pickup','inp_destination','inp_tractor','inp_trailer','inp_goods','inp_weight','inp_pal_lin','inp_pal_lout','inp_pal_din','inp_pal_dout'];
     const head = ['Data','Nadawca','Odbiorca','Załadunek','Dostawa','Ciągnik','Naczepa','Towar','Waga kg','Pal.IN zał.','Pal.OUT zał.','Pal.IN dost.','Pal.OUT dost.'];
@@ -781,7 +892,7 @@ function exportHistoryCSV() {
 function renderStats() {
     const box = document.getElementById('stats-box');
     if(!box) return;
-    const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    const hist = getHistory();
     const now = new Date();
     const period = (document.getElementById('stats-period') || {}).value || 'all';
 
@@ -837,7 +948,7 @@ function renderStats() {
 }
 
 function clearStats() {
-    const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    const hist = getHistory();
     if(!hist.length) { toast('Archiwum jest już puste', 'info'); return; }
     if(!confirm('Wyczyścić całe archiwum tras? Statystyki zostaną wyzerowane.\n\nTej operacji nie można cofnąć (zrób wcześniej Backup, jeśli chcesz zachować dane).')) return;
     localStorage.removeItem('cmr_history');
@@ -848,7 +959,7 @@ function clearStats() {
 }
 
 function repeatLastRoute() {
-    const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    const hist = getHistory();
     if(!hist.length) { toast('Archiwum jest puste — najpierw zapisz trasę', 'error'); return; }
     restoreHistory(hist[0].id);
 }
@@ -870,15 +981,23 @@ function saveCurrentToHistory() {
         if(pad && pad.canvas.width > 0) data['_' + id] = pad.canvas.toDataURL('image/png');
     });
 
-    let hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    let hist = getHistory();
     hist.unshift(data);
-    localStorage.setItem('cmr_history', JSON.stringify(hist));
+    // keep the archive bounded — drop the oldest entries beyond the limit
+    if(hist.length > HISTORY_LIMIT) hist = hist.slice(0, HISTORY_LIMIT);
+    if(!storageSet('cmr_history', hist)) {
+        // storage full: retry without signature thumbnails so the route itself survives
+        ['_sig1','_sig2','_sig3'].forEach(k => delete data[k]);
+        if(!storageSet('cmr_history', hist)) return;
+        toast('⚠️ Trasa zapisana bez miniatur podpisów (mało pamięci)', 'info', 5000);
+        return;
+    }
     toast('✅ Trasa zapisana w archiwum!', 'success');
 }
 
 function loadHistoryList() {
     const list = document.getElementById('history-list');
-    const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    const hist = getHistory();
     list.innerHTML = '';
 
     if(hist.length === 0) {
@@ -894,16 +1013,18 @@ function loadHistoryList() {
         if(pickup || dest) route = `${pickup || '?'} ➝ ${dest || '?'}`;
         const hasGoods = !!(item.inp_goods || item.goods);
         div.className = 'history-item' + (hasGoods ? ' has-goods' : '');
+        const goods = String(item.inp_goods || item.goods || '');
+        const idNum = Number(item.id) || 0;
         div.innerHTML = `
-            <div class="history-date">${item.date}</div>
-            <div class="history-route">${route}</div>
+            <div class="history-date">${escapeHtml(item.date || '')}</div>
+            <div class="history-route">${escapeHtml(route)}</div>
             <div style="font-size:12px; color:#666; margin-bottom:10px;">
-                🚛 ${item.inp_tractor || item.tractor || '–'} / ${item.inp_trailer || item.trailer || '–'}
-                ${(item.inp_goods || item.goods) ? '<br>📦 ' + (item.inp_goods || item.goods).substring(0,60) + '…' : ''}
+                🚛 ${escapeHtml(item.inp_tractor || item.tractor || '–')} / ${escapeHtml(item.inp_trailer || item.trailer || '–')}
+                ${goods ? '<br>📦 ' + escapeHtml(goods.substring(0,60)) + '…' : ''}
             </div>
             <div style="display:flex; gap:8px;">
-                <button class="btn btn-primary" style="margin:0; font-size:12px; padding:8px;" onclick="restoreHistory(${item.id})">📂 Załaduj</button>
-                <button class="btn btn-danger" style="margin:0; font-size:12px; padding:8px;" onclick="deleteHistory(${item.id})">🗑️ Usuń</button>
+                <button class="btn btn-primary" style="margin:0; font-size:12px; padding:8px;" onclick="restoreHistory(${idNum})">📂 Załaduj</button>
+                <button class="btn btn-danger" style="margin:0; font-size:12px; padding:8px;" onclick="deleteHistory(${idNum})">🗑️ Usuń</button>
             </div>
         `;
         list.appendChild(div);
@@ -911,7 +1032,7 @@ function loadHistoryList() {
 }
 
 function restoreHistory(id) {
-    const hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    const hist = getHistory();
     const item = hist.find(x => x.id === id);
     if(!item) return;
     if(!confirm('Załadować tę trasę? Obecne dane CMR zostaną nadpisane.')) return;
@@ -945,9 +1066,9 @@ function restoreHistory(id) {
 
 function deleteHistory(id) {
     if(!confirm('Usunąć ten wpis z archiwum?')) return;
-    let hist = JSON.parse(localStorage.getItem('cmr_history') || '[]');
+    let hist = getHistory();
     hist = hist.filter(x => x.id !== id);
-    localStorage.setItem('cmr_history', JSON.stringify(hist));
+    storageSet('cmr_history', hist);
     loadHistoryList();
     toast('Wpis usunięty', 'info');
 }
@@ -966,7 +1087,7 @@ let pkField = null;
 
 function openPicker(f) {
     pkField = f;
-    const db = JSON.parse(localStorage.getItem('cmr_db') || '[]');
+    const db = getDb();
     const l = document.getElementById('modal-list');
     l.innerHTML = '';
     const flt = db.filter(i => i.tag === f);
@@ -976,7 +1097,7 @@ function openPicker(f) {
     flt.forEach(i => {
         const d = document.createElement('div');
         d.className = 'modal-item';
-        d.innerHTML = `<b>${i.name}</b><br><small style="color:#666; white-space:pre-line;">${i.val}</small>`;
+        d.innerHTML = `<b>${escapeHtml(i.name)}</b><br><small style="color:#666; white-space:pre-line;">${escapeHtml(i.val)}</small>`;
         d.onclick = () => {
             const target = document.getElementById('inp_' + pkField);
             if(target) { target.value = i.val; scheduleDraftSave(); clearValidation(); }
@@ -1016,15 +1137,15 @@ function saveToDb(mode) {
         if(!item.name) { toast('Wpisz numer rejestracyjny!', 'error'); return; }
         document.getElementById('db_plate').value = '';
     }
-    let db = JSON.parse(localStorage.getItem('cmr_db') || '[]');
+    let db = getDb();
     db.push(item);
-    localStorage.setItem('cmr_db', JSON.stringify(db));
+    storageSet('cmr_db', db);
     toast('✅ Zapisano w bazie!', 'success');
     loadDb();
 }
 
 function loadDb() {
-    const db = JSON.parse(localStorage.getItem('cmr_db') || '[]');
+    const db = getDb();
     const l = document.getElementById('db-list');
     l.innerHTML = '';
     if(db.length === 0) {
@@ -1036,19 +1157,19 @@ function loadDb() {
         const li = document.createElement('li');
         li.innerHTML = `
             <div>
-                <div style="font-weight:bold; font-size:14px;">${i.name}</div>
-                <div style="font-size:11px; color:#888;">${TAG_LABELS[i.tag] || i.tag}</div>
+                <div style="font-weight:bold; font-size:14px;">${escapeHtml(i.name)}</div>
+                <div style="font-size:11px; color:#888;">${escapeHtml(TAG_LABELS[i.tag] || i.tag || '')}</div>
             </div>
-            <button class="btn-danger" style="width:auto; padding:6px 10px; border:none; border-radius:6px; color:white; cursor:pointer;" onclick="delDb(${i.id})">✕</button>
+            <button class="btn-danger" style="width:auto; padding:6px 10px; border:none; border-radius:6px; color:white; cursor:pointer;" onclick="delDb(${Number(i.id) || 0})">✕</button>
         `;
         l.appendChild(li);
     });
 }
 
 function delDb(id) {
-    let db = JSON.parse(localStorage.getItem('cmr_db') || '[]');
+    let db = getDb();
     db = db.filter(i => i.id !== id);
-    localStorage.setItem('cmr_db', JSON.stringify(db));
+    storageSet('cmr_db', db);
     loadDb();
     toast('Wpis usunięty', 'info');
 }
@@ -1067,15 +1188,15 @@ function saveProfile() {
         place20:  document.getElementById('profile_place20').value,
         bizR:     document.getElementById('profile_bizrange').value
     };
-    localStorage.setItem('cmr_prof', JSON.stringify(d));
+    if(!storageSet('cmr_prof', d)) return;
     updateCMRFromProfile(d);
     applyDocDefaults();
     toast('✅ Profil zapisany!', 'success');
 }
 
 function loadProfile() {
-    const d = JSON.parse(localStorage.getItem('cmr_prof'));
-    if(!d) return;
+    const d = getProfile();
+    if(!Object.keys(d).length) return;
     if(d.c_name)  document.getElementById('profile_c_name').value = d.c_name;
     if(d.c)       document.getElementById('profile_carrier').value = d.c;
     if(d.tr)      document.getElementById('profile_tr').value = d.tr;
@@ -1089,7 +1210,7 @@ function loadProfile() {
 
 // Fill empty date/place fields from document defaults (never overwrites)
 function applyDocDefaults() {
-    const d = JSON.parse(localStorage.getItem('cmr_prof') || '{}');
+    const d = getProfile();
     if(d.place20) {
         const el = document.getElementById('inp_place20');
         if(el && !el.value) el.value = d.place20;
@@ -1121,9 +1242,9 @@ function updateCMRFromProfile(d) {
 // ============================================================
 function exportData() {
     const backup = {
-        db:     JSON.parse(localStorage.getItem('cmr_db')      || '[]'),
-        prof:   JSON.parse(localStorage.getItem('cmr_prof')    || '{}'),
-        hist:   JSON.parse(localStorage.getItem('cmr_history') || '[]'),
+        db:     getDb(),
+        prof:   getProfile(),
+        hist:   getHistory(),
         sig:    localStorage.getItem('cmr_sig') || '',
         layout: localStorage.getItem('cmr_layout') || '',
         pin:    localStorage.getItem('cmr_pin') || '',
@@ -1141,26 +1262,125 @@ function exportData() {
     toast('Backup pobrany!', 'success');
 }
 
+// ---- Backup validation ----
+const BACKUP_MAX_BYTES = 8 * 1024 * 1024;   // 8 MB — far above any real backup
+const isPlainObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+const isDataUrlImg = v => typeof v === 'string' && /^data:image\/(png|jpe?g|webp);base64,/i.test(v);
+
+// Returns { ok, errors[], data } — `data` holds only the sanitised sections.
+function validateBackup(backup) {
+    const errors = [];
+    const out = {};
+    if(!isPlainObj(backup)) return { ok: false, errors: ['Plik nie zawiera obiektu backupu'] };
+
+    const known = ['db','prof','hist','sig','layout','pin','date'];
+    if(!known.some(k => k in backup)) errors.push('Brak znanych sekcji (db / prof / hist / sig / layout)');
+
+    // db: array of {id, name, val, tag}
+    if('db' in backup) {
+        if(!Array.isArray(backup.db)) errors.push('"db" musi być listą');
+        else {
+            const bad = backup.db.filter(i => !isPlainObj(i) || typeof i.name !== 'string' || typeof i.val !== 'string' || typeof i.tag !== 'string');
+            if(bad.length) errors.push(`"db": ${bad.length} wpis(ów) ma zły format`);
+            else out.db = backup.db.map(i => ({ id: Number(i.id) || Date.now() + Math.random(), name: i.name, val: i.val, tag: i.tag }));
+        }
+    }
+    // hist: array of {id, date, inp_*...}
+    if('hist' in backup) {
+        if(!Array.isArray(backup.hist)) errors.push('"hist" musi być listą');
+        else {
+            const bad = backup.hist.filter(h => !isPlainObj(h));
+            if(bad.length) errors.push(`"hist": ${bad.length} wpis(ów) ma zły format`);
+            else out.hist = backup.hist.slice(0, HISTORY_LIMIT).map(h => {
+                const o = {};
+                Object.entries(h).forEach(([k, v]) => {
+                    if(k === 'id') o.id = Number(v) || Date.now();
+                    else if(k.startsWith('_sig')) { if(isDataUrlImg(v)) o[k] = v; }
+                    else if(typeof v === 'string' || typeof v === 'number') o[k] = String(v);
+                });
+                if(!o.id) o.id = Date.now();
+                return o;
+            });
+        }
+    }
+    // prof: plain object with string/boolean values
+    if('prof' in backup) {
+        if(!isPlainObj(backup.prof)) errors.push('"prof" musi być obiektem');
+        else {
+            const o = {};
+            Object.entries(backup.prof).forEach(([k, v]) => {
+                if(typeof v === 'string' || typeof v === 'boolean' || typeof v === 'number') o[k] = v;
+            });
+            out.prof = o;
+        }
+    }
+    // sig: PNG/JPEG data URL
+    if(backup.sig) {
+        if(isDataUrlImg(backup.sig)) out.sig = backup.sig;
+        else errors.push('"sig" nie jest obrazem PNG/JPEG');
+    }
+    // layout: JSON string (as exported) or object
+    if(backup.layout) {
+        let lay = backup.layout;
+        if(typeof lay === 'string') { try { lay = JSON.parse(lay); } catch(e) { lay = null; } }
+        if(isPlainObj(lay) && typeof lay.ver === 'number' && isPlainObj(lay.positions)) out.layout = JSON.stringify(lay);
+        else errors.push('"layout" ma zły format');
+    }
+    // pin: exactly 4 digits
+    if(backup.pin) {
+        if(typeof backup.pin === 'string' && /^\d{4}$/.test(backup.pin)) out.pin = backup.pin;
+        else errors.push('"pin" musi mieć 4 cyfry');
+    }
+    return { ok: errors.length === 0, errors, data: out };
+}
+
 function importData(input) {
     const file = input.files[0];
+    input.value = '';
     if(!file) return;
+    if(file.size > BACKUP_MAX_BYTES) {
+        toast('❌ Plik backupu jest za duży (max 8 MB)', 'error', 5000);
+        return;
+    }
     const reader = new FileReader();
+    reader.onerror = () => toast('❌ Nie udało się odczytać pliku', 'error');
     reader.onload = function(e) {
-        try {
-            const backup = JSON.parse(e.target.result);
-            if(!confirm(`Wgrać backup z dnia: ${backup.date || '?'}?\nAktualne dane zostaną nadpisane.`)) return;
-            if(backup.db)   localStorage.setItem('cmr_db', JSON.stringify(backup.db));
-            if(backup.prof) localStorage.setItem('cmr_prof', JSON.stringify(backup.prof));
-            if(backup.hist) localStorage.setItem('cmr_history', JSON.stringify(backup.hist));
-            if(backup.sig)    localStorage.setItem('cmr_sig', backup.sig);
-            if(backup.layout) localStorage.setItem('cmr_layout', backup.layout);
-            if(backup.pin)    localStorage.setItem('cmr_pin', backup.pin);
-            toast('✅ Backup wgrany! Odświeżanie…', 'success');
-            setTimeout(() => location.reload(), 1200);
-        } catch(err) { toast('❌ Błąd pliku backup!', 'error'); }
+        let backup;
+        try { backup = JSON.parse(e.target.result); }
+        catch(err) { toast('❌ To nie jest poprawny plik JSON', 'error', 4000); return; }
+
+        const v = validateBackup(backup);
+        if(!v.ok) {
+            console.error('Backup odrzucony:', v.errors);
+            toast('❌ Backup odrzucony: ' + v.errors[0], 'error', 6000);
+            return;
+        }
+        const d = v.data;
+        const parts = [];
+        if(d.db)   parts.push(`baza: ${d.db.length}`);
+        if(d.hist) parts.push(`trasy: ${d.hist.length}`);
+        if(d.prof) parts.push('profil');
+        if(d.sig)  parts.push('podpis');
+        if(d.layout) parts.push('układ');
+        if(!parts.length) { toast('❌ Backup nie zawiera danych do wgrania', 'error'); return; }
+        if(!confirm(`Wgrać backup z dnia: ${String(backup.date || '?').slice(0, 40)}?\n(${parts.join(', ')})\nAktualne dane zostaną nadpisane.`)) return;
+
+        // write everything; stop (without reload) if storage is full
+        const writes = [];
+        if(d.db)     writes.push(storageSet('cmr_db', d.db));
+        if(d.prof)   writes.push(storageSet('cmr_prof', d.prof));
+        if(d.hist)   writes.push(storageSet('cmr_history', d.hist));
+        if(d.sig)    writes.push(storageSet('cmr_sig', d.sig));
+        if(d.layout) writes.push(storageSet('cmr_layout', d.layout));
+        if(d.pin)    writes.push(storageSet('cmr_pin', d.pin));
+        if(writes.some(ok => !ok)) {
+            toast('❌ Backup wgrany tylko częściowo — brak miejsca w pamięci', 'error', 6000);
+            return;
+        }
+        toast('✅ Backup wgrany! Odświeżanie…', 'success');
+        setTimeout(() => location.reload(), 1200);
     };
     reader.readAsText(file);
-    input.value = '';
 }
 
 // ============================================================
@@ -1278,7 +1498,7 @@ function clearP() { clearSig('profile-sig-canvas'); }
 function saveProfileSig() {
     const pad = sigPads['profile-sig-canvas'];
     if(!pad || pad.canvas.width === 0) { toast('Najpierw narysuj podpis!', 'error'); return; }
-    localStorage.setItem('cmr_sig', pad.canvas.toDataURL());
+    if(!storageSet('cmr_sig', pad.canvas.toDataURL())) return;
     toast('✅ Podpis zapisany w profilu!', 'success');
 }
 
@@ -1452,7 +1672,7 @@ function saveDraft() {
         const pad = sigPads[id];
         if(pad && pad.canvas.width > 0) data[id] = pad.canvas.toDataURL('image/png');
     });
-    localStorage.setItem('cmr_draft', JSON.stringify(data));
+    if(!storageSet('cmr_draft', data)) return;
     const status = document.getElementById('draft-status');
     if(status) {
         const now = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
@@ -1596,7 +1816,7 @@ function saveSigImg() {
     if(!sigImgObj) { toast('Najpierw wybierz plik z podpisem', 'error'); return; }
     const cv = document.getElementById('sigimg-canvas');
     const url = cv.toDataURL('image/png');
-    localStorage.setItem('cmr_sig', url);
+    if(!storageSet('cmr_sig', url)) return;
     const pad = sigPads['profile-sig-canvas'];
     if(pad) {
         const img = new Image();
@@ -2657,10 +2877,10 @@ async function syncRemoteLayout() {
         if(!remote || !remote.rev || !remote.layout) return;
         const baseRev = parseInt(localStorage.getItem('cmr_layout_baserev') || '0');
         if(remote.rev <= baseRev) return;
-        const cur = localStorage.getItem('cmr_layout');
-        if(cur) localStorage.setItem('cmr_layout_prev', cur);
-        localStorage.setItem('cmr_layout', JSON.stringify(remote.layout));
-        localStorage.setItem('cmr_layout_baserev', String(remote.rev));
+        const cur = storageGetRaw('cmr_layout');
+        if(cur) storageSet('cmr_layout_prev', cur);
+        if(!storageSet('cmr_layout', remote.layout)) return;   // storage full — keep local layout, no reload
+        storageSet('cmr_layout_baserev', String(remote.rev));
         location.reload();
     } catch(e) { /* offline — keep the local layout */ }
 }
@@ -2710,10 +2930,10 @@ function saveFullLayout() {
         if(el.classList.contains('lbl') || el.classList.contains('num')) texts[id] = el.innerText;
         if(el.dataset.leCustom) customs.push({id, type: el.dataset.leCustom});
     });
-    localStorage.setItem('cmr_layout', JSON.stringify({
+    storageSet('cmr_layout', {
         ver: LE_LAYOUT_VER, positions, fonts, weights, italics, aligns, texts,
         customs, hidden: [...leHiddenIds], locked: [...leLockedIds]
-    }));
+    });
 }
 
 function loadFullLayout() {
