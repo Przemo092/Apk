@@ -1,12 +1,18 @@
 // Service Worker (PWA) — network-first so updates reach the phone
 // immediately; the cache is only a fallback for offline use.
-const CACHE = 'nowa-cmr-pwa-v6';
+const CACHE = 'nowa-cmr-pwa-v7';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  './manifest.webmanifest'
+  './manifest.webmanifest',
+  './layout.json',
+  // PDF libraries (local copies — export/import work fully offline)
+  './vendor/html2canvas.min.js',
+  './vendor/jspdf.umd.min.js',
+  './vendor/pdf.min.js',
+  './vendor/pdf.worker.min.js'
 ];
 
 self.addEventListener('install', (event) => {

@@ -508,43 +508,97 @@ function saveScanCanvas(c) {
     }
 }
 
-// pdf.js loaded on demand — only when the user picks a PDF backdrop
-function loadPdfJs() {
-    if(window.pdfjsLib) return Promise.resolve();
+// pdf.js is bundled locally (vendor/) and loaded on demand — only when the
+// user picks a PDF backdrop. No internet needed (offline / PWA / APK).
+const PDF_VENDOR = { pdfjs: 'vendor/pdf.min.js', worker: 'vendor/pdf.worker.min.js' };
+const IMPORT_MAX_BYTES     = 25 * 1024 * 1024;   // max input file (PDF or image)
+const PDF_IMPORT_TIMEOUT   = 45000;              // ms
+const PDF_IMPORT_MAX_H     = 4000;               // max backdrop canvas height (px, width = 1240)
+
+function loadScriptOnce(src) {
     return new Promise((resolve, reject) => {
         const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-        s.onload = () => {
-            window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-            resolve();
+        s.src = src;
+        s.onload = () => resolve();
+        s.onerror = () => {
+            s.remove();
+            reject(Object.assign(new Error('Nie można załadować ' + src), { code: 'LIB_LOAD' }));
         };
-        s.onerror = reject;
         document.head.appendChild(s);
     });
 }
 
+let pdfJsPromise = null;
+function loadPdfJs() {
+    if(window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions.workerSrc) return Promise.resolve();
+    if(pdfJsPromise) return pdfJsPromise;
+    pdfJsPromise = (async () => {
+        if(!window.pdfjsLib) await loadScriptOnce(PDF_VENDOR.pdfjs);
+        if(!window.pdfjsLib) throw Object.assign(new Error('pdf.js niedostępny'), { code: 'LIB_LOAD' });
+        // file:// (Android asset build): Web Workers cannot start from file
+        // URLs. Loading the worker as a plain script makes pdf.js run it on
+        // the main thread instead (slower, but works everywhere).
+        if(location.protocol === 'file:' && !window.pdfjsWorker) await loadScriptOnce(PDF_VENDOR.worker);
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(PDF_VENDOR.worker, document.baseURI).href;
+    })().catch(e => { pdfJsPromise = null; throw e; });   // allow retry after a failure
+    return pdfJsPromise;
+}
+
+function withTimeout(promise, ms, code) {
+    let t;
+    const timer = new Promise((_, reject) => {
+        t = setTimeout(() => reject(Object.assign(new Error(code), { code })), ms);
+    });
+    return Promise.race([promise, timer]).finally(() => clearTimeout(t));
+}
+
+function pdfImportErrorMessage(e) {
+    const name = (e && e.name) || '';
+    if(e && e.code === 'PDF_TIMEOUT') return '❌ PDF jest zbyt złożony — przekroczono czas wczytywania';
+    if(e && e.code === 'LIB_LOAD')    return '❌ Nie udało się załadować modułu PDF — odśwież aplikację';
+    if(name === 'PasswordException')  return '❌ PDF jest chroniony hasłem';
+    if(/InvalidPDF|MissingPDF|FormatError/.test(name)) return '❌ Plik jest uszkodzony lub nie jest poprawnym PDF';
+    return '❌ Nie udało się wczytać PDF — spróbuj innego pliku lub użyj zdjęcia';
+}
+
 async function loadPdfScan(file) {
+    if(file.size === 0) { toast('❌ Plik PDF jest pusty', 'error'); return; }
+    if(file.size > IMPORT_MAX_BYTES) {
+        toast('❌ PDF jest za duży (max ' + Math.round(IMPORT_MAX_BYTES / 1048576) + ' MB)', 'error', 5000);
+        return;
+    }
     toast('📄 Wczytywanie PDF…', 'info', 3000);
+    let task = null, c = null;
     try {
         await loadPdfJs();
-        const buf = await file.arrayBuffer();
-        const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
-        const page = await pdf.getPage(1);
-        const raw = page.getViewport({ scale: 1 });
-        const scale = 1240 / raw.width;
-        const vp = page.getViewport({ scale });
-        const c = document.createElement('canvas');
-        c.width = Math.round(vp.width);
-        c.height = Math.round(vp.height);
-        const ctx = c.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, c.width, c.height);
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        let buf = await file.arrayBuffer();
+        task = window.pdfjsLib.getDocument({ data: buf, isEvalSupported: false });
+        buf = null;
+        const render = (async () => {
+            const pdf = await task.promise;
+            const page = await pdf.getPage(1);          // only the first page is used
+            const raw = page.getViewport({ scale: 1 });
+            if(!(raw.width > 0 && raw.height > 0)) throw new Error('Pusta strona PDF');
+            let scale = 1240 / raw.width;
+            if(raw.height * scale > PDF_IMPORT_MAX_H) scale = PDF_IMPORT_MAX_H / raw.height;
+            const vp = page.getViewport({ scale });
+            c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(vp.width));
+            c.height = Math.max(1, Math.round(vp.height));
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, c.width, c.height);
+            await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        })();
+        await withTimeout(render, PDF_IMPORT_TIMEOUT, 'PDF_TIMEOUT');
         saveScanCanvas(c);
     } catch(e) {
         console.error('PDF scan error:', e);
-        toast('❌ Nie udało się wczytać PDF — sprawdź internet lub użyj zdjęcia', 'error', 5000);
+        toast(pdfImportErrorMessage(e), 'error', 5000);
+    } finally {
+        // free the parsed document / worker and the big canvas
+        try { if(task) task.destroy().catch(() => {}); } catch(e) {}
+        if(c) { c.width = 0; c.height = 0; }
     }
 }
 
@@ -556,21 +610,31 @@ function onScanFile(input) {
         loadPdfScan(f);
         return;
     }
-    const rd = new FileReader();
-    rd.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-            // downscale so it fits in localStorage
-            const W = 1240;
-            const c = document.createElement('canvas');
-            c.width = W;
-            c.height = Math.round(W * img.height / img.width);
-            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-            saveScanCanvas(c);
-        };
-        img.src = rd.result;
+    if(f.size > IMPORT_MAX_BYTES) {
+        toast('❌ Plik jest za duży (max ' + Math.round(IMPORT_MAX_BYTES / 1048576) + ' MB)', 'error', 5000);
+        return;
+    }
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => {
+        URL.revokeObjectURL(url);
+        if(!img.width || !img.height) { toast('❌ Nie udało się wczytać obrazu', 'error'); return; }
+        // downscale so it fits in localStorage
+        let W = 1240;
+        let H = Math.round(W * img.height / img.width);
+        if(H > PDF_IMPORT_MAX_H) { W = Math.round(W * PDF_IMPORT_MAX_H / H); H = PDF_IMPORT_MAX_H; }   // keep proportions
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, W);
+        c.height = Math.max(1, H);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        saveScanCanvas(c);
+        c.width = 0; c.height = 0;
     };
-    rd.readAsDataURL(f);
+    img.onerror = () => {
+        URL.revokeObjectURL(url);
+        toast('❌ Nie udało się wczytać obrazu — to nie jest poprawny plik graficzny', 'error', 5000);
+    };
+    img.src = url;
 }
 
 function toggleScanBg() {
@@ -610,19 +674,178 @@ function applyScanBg() {
 // ============================================================
 // PDF GENERATION
 // ============================================================
+// ---- helpers: libraries / memory ----
+const PDF_LIB_VENDOR = { html2canvas: 'vendor/html2canvas.min.js', jspdf: 'vendor/jspdf.umd.min.js' };
+const PDF_SCALE_HIGH = 2.5;   // ~240 dpi — desktops / strong phones (1984×2797 px)
+const PDF_SCALE_SAFE = 2.0;   // ~192 dpi — Android app / low-memory devices (1587×2237 px)
+const PDF_SCALE_MIN  = 1.5;   // last-resort retry after a failure (~144 dpi)
+let pdfBusy = false;
+
+// Local libraries are normally loaded by <script defer> in index.html; this
+// only re-tries once if one of them is missing (e.g. first cold start).
+async function ensurePdfLibs() {
+    if(typeof html2canvas === 'undefined') await loadScriptOnce(PDF_LIB_VENDOR.html2canvas);
+    if(!(window.jspdf && window.jspdf.jsPDF)) await loadScriptOnce(PDF_LIB_VENDOR.jspdf);
+    if(typeof html2canvas === 'undefined' || !(window.jspdf && window.jspdf.jsPDF)) {
+        throw Object.assign(new Error('Brak bibliotek PDF'), { code: 'LIB_LOAD' });
+    }
+}
+
+function hasAndroidBridge() {
+    try {
+        const B = window.AndroidBridge;
+        return !!(B && typeof B.beginFile === 'function' &&
+                  typeof B.appendChunk === 'function' && typeof B.finishFile === 'function');
+    } catch(e) { return false; }
+}
+
+// A4 page = 210×296 mm ≈ 794×1119 CSS px. canvas px = css px × scale:
+// 2.5 → ~5.5 MP (~22 MB RGBA) + html2canvas clone; 2.0 → ~3.6 MP (~14 MB).
+function pickPdfScale() {
+    const mem   = navigator.deviceMemory || 0;          // Chromium only (GB, capped at 8)
+    const cores = navigator.hardwareConcurrency || 0;
+    if(hasAndroidBridge() || (mem && mem <= 4) || (cores && cores <= 4)) return PDF_SCALE_SAFE;
+    return PDF_SCALE_HIGH;
+}
+
+function renderCmrCanvas(page, scale) {
+    return html2canvas(page, {
+        scale,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        allowTaint: false,
+        onclone: (doc) => {
+            // strip any residual field backgrounds (autofill blue etc.)
+            doc.querySelectorAll('#cmr-page .cmr-input').forEach(el => {
+                el.style.background = 'transparent';
+                el.style.boxShadow = 'none';
+            });
+            // date inputs -> plain text so no calendar icon can render
+            doc.querySelectorAll('#cmr-page input[type="date"]').forEach(el => {
+                const v = el.value;
+                el.type = 'text';
+                el.value = v ? v.split('-').reverse().join('.') : '';
+            });
+        }
+    });
+}
+
+// Canvas -> PDF blob. Frees the big canvas bitmap right after encoding.
+function canvasToPdfBlob(canvasEl) {
+    let imgData = canvasEl.toDataURL('image/jpeg', 0.93);
+    canvasEl.width = 0; canvasEl.height = 0;
+    // browsers return "data:," when the canvas is too large to encode
+    if(!imgData || imgData.length < 1000 || imgData.indexOf('data:image/jpeg') !== 0) {
+        throw Object.assign(new Error('Nie udało się zakodować obrazu (za duży canvas?)'), { code: 'ENCODE' });
+    }
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+    imgData = null;
+    const blob = pdf.output('blob');
+    if(!blob || blob.size < 500) throw Object.assign(new Error('Pusty plik PDF'), { code: 'EMPTY' });
+    return blob;
+}
+
+// ---- helpers: delivery (Android bridge / share / download) ----
+function blobChunkToBase64(chunk) {
+    return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload  = () => { const s = String(fr.result); resolve(s.slice(s.indexOf(',') + 1)); };
+        fr.onerror = () => reject(fr.error || new Error('Błąd odczytu danych PDF'));
+        fr.readAsDataURL(chunk);
+    });
+}
+
+let lastAndroidResult = '';
+function androidSaveNote(fileName) {
+    return lastAndroidResult === 'SAVED'
+        ? '✅ PDF zapisany w Pobranych: ' + fileName
+        : '✅ PDF gotowy — wybierz aplikację, aby go zapisać lub wysłać';
+}
+
+// Android WebView: stream the PDF to the native side in base64 chunks
+// (blob: URLs cannot be handled by DownloadListener). Native code saves the
+// file to Downloads (MediaStore) and opens the Android share sheet.
+async function sendFileToAndroid(blob, fileName, mime) {
+    const B = window.AndroidBridge;
+    if(!B.beginFile(fileName, mime)) throw new Error('Android: nie można utworzyć pliku');
+    try {
+        const CHUNK = 3 * 256 * 1024;                   // multiple of 3 → independent base64 pieces
+        for(let off = 0; off < blob.size; off += CHUNK) {
+            const b64 = await blobChunkToBase64(blob.slice(off, off + CHUNK));
+            if(!B.appendChunk(b64)) throw new Error('Android: zapis przerwany');
+        }
+        const res = String(B.finishFile());
+        if(res.indexOf('ERROR') === 0) throw new Error('Android: ' + res.replace(/^ERROR:?\s*/, ''));
+        lastAndroidResult = res;                         // 'SAVED' | 'SHARED_ONLY'
+        return res;
+    } catch(e) {
+        try { B.abortFile(); } catch(e2) {}
+        throw e;
+    }
+}
+
+function downloadBlobInBrowser(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);  // Safari/iOS needs the URL a while
+}
+
+// Chooses the delivery path: 'android' | 'shared' | 'cancelled' | 'downloaded'
+async function deliverPdf(blob, fileName, title) {
+    if(hasAndroidBridge()) {
+        await sendFileToAndroid(blob, fileName, 'application/pdf');
+        return 'android';
+    }
+    if(navigator.share && navigator.canShare) {
+        let file = null;
+        try { file = new File([blob], fileName, { type: 'application/pdf' }); } catch(e) {}
+        if(file && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], title });
+                return 'shared';
+            } catch(e) {
+                if(e && e.name === 'AbortError') return 'cancelled';   // user closed the share sheet
+                // e.g. NotAllowedError (user activation expired) → fall back to download
+                console.warn('share failed, falling back to download:', e);
+            }
+        }
+    }
+    downloadBlobInBrowser(blob, fileName);
+    return 'downloaded';
+}
+
+function pdfErrorMessage(e) {
+    const msg = String((e && e.message) || e || '');
+    if(e && e.code === 'LIB_LOAD') return '❌ Moduł PDF nie został załadowany — odśwież aplikację lub użyj DRUK';
+    if((e && e.code === 'ENCODE') || /memory|alloc|too large/i.test(msg)) return '❌ Za mało pamięci na PDF — zamknij inne aplikacje i spróbuj ponownie lub użyj DRUK';
+    if(/^Android:/.test(msg)) return '❌ Nie udało się zapisać PDF na urządzeniu — ' + msg.slice(9, 80);
+    return '❌ Błąd generowania PDF — spróbuj ponownie lub użyj przycisku DRUK';
+}
+
 async function generatePDF() {
+    if(pdfBusy) { toast('PDF jest już generowany…', 'info'); return; }
     if(scanModeBlocked()) return;
     if(!validateForm()) {
         toast('Uzupełnij wymagane pola przed generowaniem PDF', 'error');
         return;
     }
-    if(typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
-        toast('Ładowanie bibliotek PDF…', 'info');
-        await new Promise(r => setTimeout(r, 1500));
-        if(typeof html2canvas === 'undefined') {
-            toast('Brak połączenia z internetem — użyj przycisku DRUK', 'error', 5000);
-            return;
-        }
+    pdfBusy = true;
+    try {
+        await ensurePdfLibs();
+    } catch(e) {
+        pdfBusy = false;
+        console.error('PDF libs error:', e);
+        toast(pdfErrorMessage(e), 'error', 5000);
+        return;
     }
 
     const page = document.getElementById('cmr-page');
@@ -646,50 +869,42 @@ async function generatePDF() {
 
         await new Promise(r => setTimeout(r, 120));
 
-        const canvasEl = await html2canvas(page, {
-            scale: 2.5,
-            useCORS: true,
-            logging: false,
-            backgroundColor: '#ffffff',
-            allowTaint: false,
-            onclone: (doc) => {
-                // strip any residual field backgrounds (autofill blue etc.)
-                doc.querySelectorAll('#cmr-page .cmr-input').forEach(el => {
-                    el.style.background = 'transparent';
-                    el.style.boxShadow = 'none';
-                });
-                // date inputs -> plain text so no calendar icon can render
-                doc.querySelectorAll('#cmr-page input[type="date"]').forEach(el => {
-                    const v = el.value;
-                    el.type = 'text';
-                    el.value = v ? v.split('-').reverse().join('.') : '';
-                });
+        // Render → JPEG → PDF. On failure (typically out-of-memory on weak
+        // phones) retry once at a lower scale before giving up.
+        let scale = pickPdfScale();
+        let blob = null, lastErr = null;
+        for(let attempt = 0; attempt < 2 && !blob; attempt++) {
+            let canvasEl = null;
+            try {
+                canvasEl = await renderCmrCanvas(page, scale);
+                blob = canvasToPdfBlob(canvasEl);
+            } catch(e) {
+                lastErr = e;
+                console.error('PDF render attempt ' + (attempt + 1) + ' (scale ' + scale + ') failed:', e);
+                if(canvasEl) { canvasEl.width = 0; canvasEl.height = 0; }
+                if(scale <= PDF_SCALE_MIN) break;
+                scale = PDF_SCALE_MIN;
             }
-        });
-
-        const imgData = canvasEl.toDataURL('image/jpeg', 0.93);
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+            canvasEl = null;
+        }
+        if(!blob) throw lastErr || new Error('PDF nie został wygenerowany');
 
         const truck = (document.getElementById('inp_tractor').value || '').replace(/[^a-zA-Z0-9]/g, '') || 'CMR';
         const dateStr = new Date().toISOString().slice(0, 10);
         const fileName = `CMR_${truck}_${dateStr}.pdf`;
 
-        // Try Web Share API first (mobile), fall back to download
-        const blob = pdf.output('blob');
-        const file = new File([blob], fileName, { type: 'application/pdf' });
-        if(navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: 'CMR ' + truck });
-            toast('✅ PDF udostępniony!', 'success');
-        } else {
-            pdf.save(fileName);
-            toast('✅ PDF zapisany: ' + fileName, 'success');
-        }
+        // Android bridge → Web Share (files) → browser download
+        const how = await deliverPdf(blob, fileName, 'CMR ' + truck);
+        blob = null;
+        if(how === 'android')         toast(androidSaveNote(fileName), 'success', 4500);
+        else if(how === 'shared')     toast('✅ PDF udostępniony!', 'success');
+        else if(how === 'downloaded') toast('✅ PDF pobrany: ' + fileName, 'success');
+        // 'cancelled' → user closed the share sheet: no success message
     } catch(err) {
         console.error('PDF error:', err);
-        toast('❌ Błąd PDF — użyj przycisku DRUK', 'error', 5000);
+        toast(pdfErrorMessage(err), 'error', 6000);
     } finally {
+        pdfBusy = false;
         page.style.transform = hadTransform;
         page.style.marginBottom = hadMarginB;
         page.style.marginRight = hadMarginR;

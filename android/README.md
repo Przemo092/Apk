@@ -35,7 +35,14 @@ aplikacja działa też offline, bo pliki są wbudowane).
    - `manifest.webmanifest`
    - `layout.json`
    - `sw.js`
+   - **cały katalog `vendor/`** (html2canvas, jsPDF, pdf.js + worker — PDF
+     działa wtedy bez internetu)
    - (opcjonalnie ikony, jeśli używasz)
+
+   Dodatkowo (FileProvider do udostępniania PDF): skopiuj
+   `android/file_paths.xml` do `app/src/main/res/xml/file_paths.xml`
+   (utwórz katalog `xml`, jeśli go nie ma). Projekt musi mieć zależność
+   `androidx.core` (jest domyślnie w szablonie *Empty Views Activity*).
 
    > Uwaga: `MainActivity.java` ładuje `file:///android_asset/index.html`.
    > Jeśli wolisz zawsze najnowszą wersję z internetu, w `MainActivity.java`
@@ -60,11 +67,18 @@ Prawym na `app` → **New → Image Asset** → wybierz obrazek logo → **Finis
   więc profil, układ, historia i baza są zapamiętywane w aplikacji.
 - **GPS** (pola lokalizacji, firmy w pobliżu) wymaga zgody na lokalizację —
   aplikacja poprosi przy pierwszym uruchomieniu.
-- **PDF / udostępnianie** — Web Share API działa w WebView; pobieranie plików
-  obsługuje `DownloadListener`.
+- **PDF / udostępnianie** — WebView nie obsługuje `blob:` w `DownloadListener`
+  ani Web Share API z plikami, dlatego `MainActivity` udostępnia JS-owi most
+  `window.AndroidBridge` (`beginFile` → `appendChunk` × N → `finishFile`).
+  Android 10+: PDF trafia do **Pobranych** przez MediaStore (bez uprawnień do
+  pamięci) i od razu otwiera się okno „Udostępnij” (FileProvider). Android 7–9:
+  tylko okno „Udostępnij” (stamtąd można zapisać plik).
 - **Wgrywanie skanu/podpisu** — obsługuje `onShowFileChooser` (wybór pliku/zdjęcia).
-- Biblioteki `html2canvas` i `jsPDF` ładują się z internetu przy generowaniu PDF,
-  dlatego manifest zawiera uprawnienie `INTERNET`. Reszta aplikacji działa offline.
+- Biblioteki PDF są wbudowane lokalnie (`vendor/`), więc generowanie i import
+  PDF działają offline. `INTERNET` jest potrzebny tylko do GPS-owych podpowiedzi
+  firm (OpenStreetMap). Ruch HTTP (cleartext) jest wyłączony.
+- Eksport backupu / CSV / `layout.json` używa jeszcze linków `blob:` — w APK
+  nie zadziałają, dopóki nie zostaną przepięte na `AndroidBridge` (osobne zadanie).
 
 ## Podgląd wersji
 Numer wersji aplikacji widać w zakładce **Profil** na dole

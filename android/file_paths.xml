@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider paths for CMR PRO: only the cache/shared folder (generated PDFs) is exposed.
+     Copy to app/src/main/res/xml/file_paths.xml -->
+<paths>
+    <cache-path name="shared_pdf" path="shared/" />
+</paths>
